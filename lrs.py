@@ -11,10 +11,13 @@ class Lrs:
         self.Row = [] # B[i] is to be found in Row[i] of matrix
         self.Column = [] # C[i] is to be found in Column[i] of matrix
         self.m = m # Number of input hyperplanes
-        self.d = d # Embedding dimension
+        self.d = d # dimension of embedding space + 1
         self.det = mpz(1) # determinant of the matrix, quasi the shared denominator
-        # Initializing indices for search procedure
         self.bases = [] # list of bases found
+
+    def setObjective(self):
+        for i in range(1, self.d):
+            self.matrix[0][i] = mpz(-self.det)
 
     def augmentWithObjective(self):
         objectiveRow = [mpz(1)]*(self.d)
@@ -27,44 +30,71 @@ class Lrs:
         self.C = list(range(1, self.d)) + [self.d + self.m]
         self.Column = list(range(1, self.d)) + [0]
 
-        for inIndex in range(self.d - 1):
+        for i in range(self.d - 1):
+            inIndex = 0
             outIndex = 1
             while (self.B[outIndex] in range(1, self.d) or
                    self.matrix[self.Row[outIndex]][self.Column[inIndex]] == 0):
                 outIndex += 1
             self.pivot(outIndex, inIndex)
+        self.printInfo('After first basis')
 
     def select_pivot(self):
-        for i, dictIndicator in self.locations[1 : self.m + self.d]:
-            if dictIndicator == 'B' and self.matrix[i][self.d] < 0:
-                pass
+        basis_index = self.d
+        cobasis_index = 0
+        for i in range(self.d, self.d + self.m):
+            if basis_index <= self.m and self.B[basis_index] == i:
+                if self.matrix[self.Row[basis_index]][0] < 0:
+                    # Bi is primal infeasible
+                    print('B[{}] = {} primal infeasible'.format(basis_index, self.B[basis_index]))
+                    for cobasis_index, c in enumerate(self.C):
+                        if self.matrix[self.Row[basis_index]][self.Column[cobasis_index]] > 0:
+                            return basis_index, cobasis_index
+                    raise ValueError
+                basis_index += 1
+            elif cobasis_index < self.d and self.C[cobasis_index] == i:
+                if self.matrix[0][self.Column[cobasis_index]] < 0:
+                    # Ci is dual infeasible
+                    print('C[{}] = {} dual infeasible'.format(cobasis_index, self.C[cobasis_index]))
+                    for basis_index, b in enumerate(self.B):
+                        if basis_index < self.d:
+                            continue
+                        if self.matrix[self.Row[basis_index][self.Column[cobasis_index]]] < 0:
+                            return basis_index, cobasis_index
+                    raise ValueError
+                cobasis_index += 1
 
     def search(self):
-        i = 2
-        j = 1
-        while not (i > self.m and self.B[self.m] == self.m):
-            while i <= self.m and not self.reverse():
+        i = self.d
+        j = 0
+        while (j < self.d or self.B[self.m] != self.m):
+            while i <= self.m and not self.reverse(i, j):
                 i, j = self.increment(i, j)
-                if (i <= self.m):
-                    if self.lex_min():
-                        self.bases.append(self.B)
-                    i = 2
-                    j = 1
-                else:
-                    self.select_pivot()
-                    self.pivot()
-                    self.increment()
+            if (i <= self.m):
+                if self.lex_min():
+                    self.bases.append(self.B)
+                i = self.d
+                j = 0
+            else:
+                self.select_pivot()
+                self.pivot()
+                self.increment()
 
     def reverse(self, i, j):
+        b = self.B[i]
+        c = self.C[j]
         self.pivot(i, j)
-        if self.select_pivot() == (j, i):
+        i_forward, j_forward = self.select_pivot()
+        if self.B[i_forward] == c and self.C[j_forward] == b:
             return True
         else:
-            self.pivot(i, j)
+            i_back = self.B.index(c)
+            j_back = self.C.index(b)
+            self.pivot(i_back, j_back)
             return False
 
     def lex_min(self):
-        pass
+        return True
 
     def printInfo(self, infoString=None):
         if infoString is not None:
@@ -114,11 +144,11 @@ class Lrs:
 
     def sortDictionary(self, dictionary, locations):
         newDic, newLoc = zip(*sorted(zip(dictionary, locations)))
-        return newDic, newLoc
+        return list(newDic), list(newLoc)
 
     def increment(self, i, j):
         j += 1
-        if j == self.n - self.m:
+        if j == self.d:
             j = 1
             i += 1
         return i, j
@@ -139,13 +169,12 @@ class Lrs:
         print(str)
 
 def test_augment_with_objective():
-    from reader import reader, addSlacks
+    from reader import reader
 
     matrix, m, d = reader('data/arrangement.ine')
     lrs = Lrs(matrix, m, d)
     lrs.augmentWithObjective()
     lrs.firstBasis()
-    assert False
 
 @pytest.fixture
 def arrangement():
@@ -162,9 +191,8 @@ def arrangement():
     bare_lrs.m = 4
     bare_lrs.d = 3
     bare_lrs.det = 1
-    bare_lrs.locations = [('B', 0), ('C', 0), ('C', 1), ('B', 1), ('B', 2), ('B', 3), ('B', 4),
-                          ('C', 2)]
     return bare_lrs
+
 
 def test_pivot(arrangement):
     from copy import deepcopy
@@ -172,9 +200,27 @@ def test_pivot(arrangement):
     B_before = deepcopy(arrangement.B)
     C_before = deepcopy(arrangement.C)
     arrangement.pivot(4, 0)
-    assert arrangement.B == [0, 3, 4, 5, 1]
-    assert arrangement.C == [6, 2, 7]
-    arrangement.pivot(4,0)
+    assert list(arrangement.B) == [0, 1, 3, 4, 5]
+    assert list(arrangement.C) == [2, 6, 7]
+    # We pivot back and test if we get the same result
+    arrangement.pivot(1,1)
     assert  matrix_before == arrangement.matrix
     assert B_before == arrangement.B
     assert C_before == arrangement.C
+
+
+def test_select_pivot(arrangement):
+    i, j = arrangement.select_pivot()
+    assert i == 2
+    assert j == 0
+
+def test_search():
+    from reader import reader
+
+    matrix, m, d = reader('data/arrangement.ine')
+    lrs = Lrs(matrix, m, d)
+    lrs.augmentWithObjective()
+    lrs.firstBasis()
+    lrs.setObjective()
+    lrs.search()
+    assert False
