@@ -10,7 +10,6 @@ class Lrs:
         self.C = [] # Cobasis
         self.Row = [] # B[i] is to be found in Row[i] of matrix
         self.Column = [] # C[i] is to be found in Column[i] of matrix
-        self.locations = [] # location[i] = (B/C, k) Variable i in Basis/Cobasis at index k
         self.m = m # Number of input hyperplanes
         self.d = d # Embedding dimension
         self.det = mpz(1) # determinant of the matrix, quasi the shared denominator
@@ -27,12 +26,6 @@ class Lrs:
         self.Row = list(range(self.m + 1))
         self.C = list(range(1, self.d)) + [self.d + self.m]
         self.Column = list(range(1, self.d)) + [0]
-
-        for i in range(self.m+self.d + 1):
-            if i in list(range(1, self.d )) + [self.d + self.m]:
-                self.locations.append(('C', i))
-            if i in [0] + list(range(self.d, self.d + self.m)):
-                self.locations.append(('B', i))
 
         for inIndex in range(self.d - 1):
             outIndex = 1
@@ -117,8 +110,6 @@ class Lrs:
         self.B[outIndex], self.C[inIndex] = self.C[inIndex], self.B[outIndex]
         self.B, self.Row = self.sortDictionary(self.B, self.Row)
         self.C, self.Column = self.sortDictionary(self.C, self.Column)
-        self.locations[self.B[outIndex]] = ('B', outIndex)
-        self.locations[self.C[inIndex]] = ('C', inIndex)
         self.printInfo('After pivot:')
 
     def sortDictionary(self, dictionary, locations):
