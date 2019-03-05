@@ -14,6 +14,8 @@ class Lrs:
         self.d = d # dimension of embedding space + 1
         self.det = mpz(1) # determinant of the matrix, quasi the shared denominator
         self.bases = [] # list of bases found
+        self.i = self.d
+        self.j = 0
 
     def setObjective(self):
         for i in range(1, self.d):
@@ -30,13 +32,13 @@ class Lrs:
         self.C = list(range(1, self.d)) + [self.d + self.m]
         self.Column = list(range(1, self.d)) + [0]
 
-        for i in range(self.d - 1):
-            inIndex = 0
-            outIndex = 1
-            while (self.B[outIndex] in range(1, self.d) or
-                   self.matrix[self.Row[outIndex]][self.Column[inIndex]] == 0):
-                outIndex += 1
-            self.pivot(outIndex, inIndex)
+        for k in range(self.d - 1):
+            self.j = 0
+            self.i = 1
+            while (self.B[self.i] in range(1, self.d) or
+                   self.matrix[self.Row[self.i]][self.Column[self.j]] == 0):
+                self.i += 1
+            self.pivot()
         self.printInfo('After first basis')
 
     def select_pivot(self):
@@ -53,44 +55,66 @@ class Lrs:
                     raise ValueError
                 basis_index += 1
             elif cobasis_index < self.d and self.C[cobasis_index] == i:
-                if self.matrix[0][self.Column[cobasis_index]] < 0:
+                if self.matrix[0][self.Column[cobasis_index]] > 0:
                     # Ci is dual infeasible
                     print('C[{}] = {} dual infeasible'.format(cobasis_index, self.C[cobasis_index]))
                     for basis_index, b in enumerate(self.B):
                         if basis_index < self.d:
                             continue
-                        if self.matrix[self.Row[basis_index][self.Column[cobasis_index]]] < 0:
+                        if self.matrix[self.Row[basis_index]][self.Column[cobasis_index]] < 0:
                             return basis_index, cobasis_index
                     raise ValueError
                 cobasis_index += 1
 
     def search(self):
-        i = self.d
-        j = 0
-        while (j < self.d or self.B[self.m] != self.m):
-            while i <= self.m and not self.reverse(i, j):
-                i, j = self.increment(i, j)
-            if (i <= self.m):
-                if self.lex_min():
-                    self.bases.append(self.B)
-                i = self.d
-                j = 0
-            else:
-                self.select_pivot()
-                self.pivot()
-                self.increment()
+        self.printInfo('Search start:')
+        self.i = self.d
+        nextbasis = True
+        backtrack = False
+        while nextbasis:
+            self.j = 0
+            while self.j < self.d or self.B[self.m] != self.m:
+                if backtrack:
+                    print('Pivoting back!')
+                    self.i, self.j = self.select_pivot()
+                    self.pivot()
+                    self.increment()
+                else:
+                    while self.j < self.d - 1 and not self.reverse():
+                        self.increment()
+                        print('Incrementing -> i={}, j={}'.format(self.i, self.j))
+                    print('Append basis: {}'.format(self.B))
+                    if self.lex_min():
+                        self.bases.append(self.B)
+                    if self.j == self.d - 1:
+                        backtrack = True
+                    else:
+                        # self.pivot()
+                        print('start tree search from new root')
+                        break
 
-    def reverse(self, i, j):
-        b = self.B[i]
-        c = self.C[j]
-        self.pivot(i, j)
+
+
+    def update(self):
+        B_out = deepcopy(self.B[self.i])
+        C_Out = deepcopy(self.C[self.j])
+        self.B[self.i], self.C[self.j] = self.C[self.j], self.B[self.i]
+        self.B, self.Row = self.sortDictionary(self.B, self.Row)
+        self.C, self.Column = self.sortDictionary(self.C, self.Column)
+        self.i = self.B.index(C_Out)
+        self.j = self.C.index(B_out)
+
+
+    def reverse(self):
+        print('In reverse: i: {}, j:{}'.format(self.i, self.j))
+        self.pivot()
         i_forward, j_forward = self.select_pivot()
-        if self.B[i_forward] == c and self.C[j_forward] == b:
+        if i_forward == self.i and j_forward == self.j:
+            print('valid reverse')
             return True
         else:
-            i_back = self.B.index(c)
-            j_back = self.C.index(b)
-            self.pivot(i_back, j_back)
+            print('Not valid reverse: pivoting back')
+            self.pivot()
             return False
 
     def lex_min(self):
@@ -122,13 +146,12 @@ class Lrs:
         nominator = self.matrix[i][j] * pivotElement - self.matrix[i][pivotColumn] * self.matrix[pivotRow][j]
         return divexact(nominator, self.det)
 
-    def pivot(self, outIndex, inIndex):
-        self.printInfo('Before pivot')
-        print('pivot: outIndex: {}; inIndex: {}'.format(outIndex, inIndex))
-        print('outVariable: {}; inVariable: {}'.format(self.B[outIndex], self.C[inIndex]))
+    def pivot(self):
+        print('pivot: outIndex: {}; inIndex: {}'.format(self.i, self.j))
+        print('outVariable: {}; inVariable: {}'.format(self.B[self.i], self.C[self.j]))
 
-        row = self.Row[outIndex]
-        column = self.Column[inIndex]
+        row = self.Row[self.i]
+        column = self.Column[self.j]
         pivotElement = deepcopy(self.matrix[row][column])
         self.det = self.det if pivotElement > 0 else -self.det
 
@@ -137,21 +160,19 @@ class Lrs:
             for i in range(self.m +1)
         ]
         self.det = pivotElement if pivotElement > 0 else - pivotElement
-        self.B[outIndex], self.C[inIndex] = self.C[inIndex], self.B[outIndex]
-        self.B, self.Row = self.sortDictionary(self.B, self.Row)
-        self.C, self.Column = self.sortDictionary(self.C, self.Column)
+        self.update()
         self.printInfo('After pivot:')
 
     def sortDictionary(self, dictionary, locations):
         newDic, newLoc = zip(*sorted(zip(dictionary, locations)))
         return list(newDic), list(newLoc)
 
-    def increment(self, i, j):
-        j += 1
-        if j == self.d:
-            j = 1
-            i += 1
-        return i, j
+    def increment(self):
+        if self.i == self.m:
+            self.j += 1
+            self.i = self.d
+        else:
+            self.i += 1
 
     def pretty_print_matrix(self):
         str = '[\n'
@@ -193,25 +214,56 @@ def arrangement():
     bare_lrs.det = 1
     return bare_lrs
 
+@pytest.fixture
+def simplex():
+    # 2d Simplex shifted by (1, 1)
+    bare_lrs = Lrs.__new__(Lrs)
+    bare_lrs.matrix = [[mpz(0), mpz(1), mpz(1)],
+                       [mpz(-1), mpz(1), mpz(0)],
+                       [mpz(-1), mpz(0), mpz(1)],
+                       [mpz(2), mpz(-1), mpz(-1)],]
+    bare_lrs.B = [0, 3, 4, 5]
+    bare_lrs.C = [1, 2, 6]
+    bare_lrs.Row = list(range(4))
+    bare_lrs.Column = [1, 2, 0]
+    bare_lrs.m = 3
+    bare_lrs.d = 3
+    bare_lrs.det = 1
+
+    return bare_lrs
+
 
 def test_pivot(arrangement):
     from copy import deepcopy
     matrix_before = deepcopy(arrangement.matrix)
     B_before = deepcopy(arrangement.B)
     C_before = deepcopy(arrangement.C)
-    arrangement.pivot(4, 0)
+    arrangement.i = 4
+    arrangement.j = 0
+    arrangement.pivot()
     assert list(arrangement.B) == [0, 1, 3, 4, 5]
     assert list(arrangement.C) == [2, 6, 7]
     # We pivot back and test if we get the same result
-    arrangement.pivot(1,1)
+    arrangement.pivot()
     assert  matrix_before == arrangement.matrix
     assert B_before == arrangement.B
     assert C_before == arrangement.C
 
 
-def test_select_pivot(arrangement):
-    i, j = arrangement.select_pivot()
-    assert i == 2
+def test_select_pivot(simplex):
+    bare_lrs = Lrs.__new__(Lrs)
+    bare_lrs.matrix = [[mpz(0), mpz(1), mpz(1)],
+                       [mpz(-1), mpz(1), mpz(0)],
+                       [mpz(-1), mpz(0), mpz(1)],
+                       [mpz(2), mpz(-1), mpz(-1)]]
+    bare_lrs.B = [0, 1, 2, 5]
+    bare_lrs.C = [3, 4, 6]
+    bare_lrs.Row = list(range(4))
+    bare_lrs.Column = [1, 2, 0]
+    bare_lrs.m = 3
+    bare_lrs.d = 3
+    i, j = bare_lrs.select_pivot()
+    assert i == 3
     assert j == 0
 
 def test_search():
