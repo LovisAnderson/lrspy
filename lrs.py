@@ -14,9 +14,10 @@ class Lrs:
         self.d = d # dimension of embedding space + 1
         self.det = mpz(1) # determinant of the matrix, quasi the shared denominator
         self.bases = [] # list of bases found
-        self.vertices = []
-        self.i = self.d
-        self.j = 0
+        self.vertices = [] # list of vertices found
+        self.position_vectors = [] # relative position to hyperplanes for each vertex
+        self.i = self.d # Basis index in which we pivot
+        self.j = 0 # Cobasis index in which we pivot
 
     def setObjective(self):
         for i in range(1, self.d):
@@ -80,6 +81,7 @@ class Lrs:
                     print('All bases found!')
                     print('bases:', self.bases)
                     print('vertices', self.vertices)
+                    print('position vectors:', self.position_vectors)
                     nextbasis = False
                     break
                 if backtrack:
@@ -104,10 +106,22 @@ class Lrs:
         print('Append basis: {}'.format(self.B))
         self.bases.append(deepcopy(self.B))
         self.vertices.append(self.getVertex())
+        self.position_vectors.append(self.getPositionVector())
 
     def getVertex(self):
         vertex = tuple(self.matrix[self.Row[k]][0] / self.det for k in range(1, self.d))
         return vertex
+
+    def getPositionVector(self):
+        basisIndex = self.d
+        position_vector = []
+        for i in range(self.d, self.d + self.m):
+            if basisIndex <= self.m and self.B[basisIndex] == i:
+                position_vector.append(-1 if self.matrix[self.Row[basisIndex]][0] < 0 else 1)
+                basisIndex += 1
+            else:
+                position_vector.append(0)
+        return position_vector
 
     def update(self):
         B_out = deepcopy(self.B[self.i])
@@ -278,6 +292,21 @@ def simplex():
 
     return bare_lrs
 
+def test_position_vector():
+    simpleLrs = Lrs.__new__(Lrs)
+    simpleLrs.matrix = [[mpz(2), mpz(1), mpz(0)],
+                       [mpz(2), mpz(-1), mpz(-1)],
+                       [mpz(1), mpz(1), mpz(0)],
+                       [mpz(-1), mpz(2), mpz(2)],
+                       [mpz(1), mpz(-1), mpz(-1)]]
+    simpleLrs.B = [0, 1, 2, 4, 6]
+    simpleLrs.C = [3, 5, 7]
+    simpleLrs.Row = [0, 1, 2, 4, 3]
+    simpleLrs.Column = [2, 1, 0]
+    simpleLrs.d = 3
+    simpleLrs.m = 4
+    simpleLrs.getPositionVector()
+    assert simpleLrs.getPositionVector() == [0, 1, 0, -1]
 
 def test_pivot(arrangement):
     from copy import deepcopy
