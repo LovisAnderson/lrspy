@@ -14,6 +14,7 @@ class Lrs:
         self.d = d # dimension of embedding space + 1
         self.det = mpz(1) # determinant of the matrix, quasi the shared denominator
         self.bases = [] # list of bases found
+        self.vertices = []
         self.i = self.d
         self.j = 0
 
@@ -40,6 +41,7 @@ class Lrs:
                 self.i += 1
             self.pivot()
         self.printInfo('After first basis')
+        self.appendSolution()
 
     def select_pivot(self):
         basis_index = self.d
@@ -74,26 +76,38 @@ class Lrs:
         while nextbasis:
             self.j = 0
             while self.j < self.d or self.B[self.m] != self.m:
+                if self.j == self.d - 1 and self.B[self.m] == self.m:
+                    print('All bases found!')
+                    print('bases:', self.bases)
+                    print('vertices', self.vertices)
+                    nextbasis = False
+                    break
                 if backtrack:
                     print('Pivoting back!')
                     self.i, self.j = self.select_pivot()
                     self.pivot()
                     self.increment()
+                    backtrack = False
                 else:
-                    while self.j < self.d - 1 and not self.reverse():
+                    while self.j < self.d - 1 and not self.reverse:
                         self.increment()
                         print('Incrementing -> i={}, j={}'.format(self.i, self.j))
-                    print('Append basis: {}'.format(self.B))
-                    if self.lex_min():
-                        self.bases.append(self.B)
                     if self.j == self.d - 1:
                         backtrack = True
                     else:
-                        # self.pivot()
+                        if self.lex_min():
+                            self.appendSolution()
                         print('start tree search from new root')
                         break
 
+    def appendSolution(self):
+        print('Append basis: {}'.format(self.B))
+        self.bases.append(deepcopy(self.B))
+        self.vertices.append(self.getVertex())
 
+    def getVertex(self):
+        vertex = tuple(self.matrix[self.Row[k]][0] / self.det for k in range(1, self.d))
+        return vertex
 
     def update(self):
         B_out = deepcopy(self.B[self.i])
@@ -105,8 +119,12 @@ class Lrs:
         self.j = self.C.index(B_out)
 
 
+    @property
     def reverse(self):
         print('In reverse: i: {}, j:{}'.format(self.i, self.j))
+        possibleReversePivot = self.necessaryConditionForReverse()
+        if not possibleReversePivot:
+            return False
         self.pivot()
         i_forward, j_forward = self.select_pivot()
         if i_forward == self.i and j_forward == self.j:
@@ -116,6 +134,28 @@ class Lrs:
             print('Not valid reverse: pivoting back')
             self.pivot()
             return False
+
+
+    def necessaryConditionForReverse(self):
+        if self.matrix[self.Row[self.i]][0] > 0:
+            if (
+                    self.matrix[self.Row[self.i]][self.Column[self.j]] > 0 and
+                    all(
+                        self.matrix[self.Row[self.i]][self.Column[k]] <= 0
+                        for k in range(0, maxIndexSmallerNumber(self.C, self.B[self.i]) + 1)
+                    )
+            ):
+                return  True
+        if self.matrix[0][self.Column[self.j]] < 0:
+            if (self.matrix[self.Row[self.i]][self.Column[self.j]] < 0 and
+                all(
+                    self.matrix[self.Row[k]][self.Column[self.j]] <= 0
+                    for k in range(1, maxIndexSmallerNumber(self.C, self.C[self.j]) + 1)
+                )
+            ):
+                return True
+        return False
+
 
     def lex_min(self):
         return True
@@ -188,6 +228,12 @@ class Lrs:
             str += ']\n'
         str += ']'
         print(str)
+
+def maxIndexSmallerNumber(list, number):
+    """ Assumes sorted input list"""
+    for i, element in enumerate(list):
+        if element >= number:
+            return i-1
 
 def test_augment_with_objective():
     from reader import reader
