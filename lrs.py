@@ -18,6 +18,8 @@ class Lrs:
         self.position_vectors = [] # relative position to hyperplanes for each vertex
         self.i = self.d # Basis index in which we pivot
         self.j = 0 # Cobasis index in which we pivot
+        self.boxed = False # Flag that indicates if we pivot inside a box (given through constraints)
+
 
     def setObjective(self):
         for i in range(1, self.d):
@@ -28,12 +30,13 @@ class Lrs:
         objectiveRow[0] = mpz(0)
         self.matrix.insert(0, objectiveRow)
 
-    def firstBasis(self):
-        self.B = [0] + list(range(self.d , self.d + self.m))
+    def initDicts(self):
+        self.B = [0] + list(range(self.d, self.d + self.m))
         self.Row = list(range(self.m + 1))
         self.C = list(range(1, self.d)) + [self.d + self.m]
         self.Column = list(range(1, self.d)) + [0]
 
+    def firstBasis(self):
         for k in range(self.d - 1):
             self.j = 0
             self.i = 1
@@ -43,6 +46,32 @@ class Lrs:
             self.pivot()
         self.printInfo('After first basis')
         self.appendSolution()
+
+    def firstBasisWithBox(self):
+        pass
+    def addBoxConstraints(self, constraints):
+        """
+        Dicts have to be initialized before.
+        Constraints are of the form a0 + a1x1 + ... + a_d-1 x_d-1 >= 0
+        """
+        self.matrix += constraints
+        boxIndices = list(range(self.m + self.d + 1, self.m + self.d + 1 + len(constraints)))
+        self.B += boxIndices
+        self.Row += list(range(self.m + 1, self.m + 1 + len(constraints)))
+
+    def pivot_stays_in_box(self):
+        pivotRow = self.Row[self.i]
+        pivotColumn = self.Column[self.j]
+        pivotElement = self.matrix[pivotRow][pivotColumn]
+        insideBox = True
+        for i, b in enumerate(self.B):
+            if b > self.m + self.d and self.computeEntryAfterPivot(
+                    self.Row[i], 0, pivotRow, pivotColumn, pivotElement
+            ) > 0:
+                insideBox = False
+                break
+        return insideBox
+
 
     def select_pivot(self):
         basis_index = self.d
@@ -68,6 +97,12 @@ class Lrs:
                             return basis_index, cobasis_index
                     raise ValueError
                 cobasis_index += 1
+
+    def insideBox(self):
+        for k, boxVar in enumerate(self.B[self.m:+1]):
+            if self.matrix[self.Row[self.m + 1 + k]][0] <= 0:
+                return False
+        return True
 
     def search(self):
         self.printInfo('Search start:')
@@ -132,8 +167,6 @@ class Lrs:
         self.i = self.B.index(C_Out)
         self.j = self.C.index(B_out)
 
-
-    @property
     def reverse(self):
         print('In reverse: i: {}, j:{}'.format(self.i, self.j))
         possibleReversePivot = self.necessaryConditionForReverse()
