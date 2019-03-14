@@ -11,7 +11,7 @@ class Lrs:
         self.Row = [] # B[i] is to be found in Row[i] of matrix
         self.Column = [] # C[i] is to be found in Column[i] of matrix
         self.m = m # Number of input hyperplanes
-        self.d = d # dimension of embedding space + 1
+        self.d = d # dimension of embedding space + 1 (projective dimension)
         self.det = mpz(1) # determinant of the matrix, quasi the shared denominator
         self.bases = [] # list of bases found
         self.vertices = [] # list of vertices found
@@ -48,16 +48,42 @@ class Lrs:
         self.appendSolution()
 
     def firstBasisWithBox(self):
-        pass
+        for k in range(self.d - 1):
+            self.j = 0
+            self.i = self.firstBoxBasisIndex()
+            while self.matrix[self.Row[self.i]][self.Column[self.j]] == 0:
+                self.i += 1
+            self.pivot()
+        while not self.insideBox():
+            startBasis = self.firstBoxBasisIndex()
+            for i, k in enumerate(self.B[startBasis:]):
+                if self.matrix[self.Row[startBasis + i], 0] < 0:
+                    # Primal infeasible Variable
+                    self.i = startBasis + i
+
+            while self.matrix[self.Row[self.i]][self.Column[self.j]] <= 0:
+                # To get primal feasible variable the sign of A[Row[i]][0] has to change
+                # This happens if A[Row[i]][Column[j]] > 0
+                self.j += 1
+            if self.j == self.d:
+                raise ValueError
+            self.pivot()
+        self.printInfo('After first basis with bounding box')
+
     def addBoxConstraints(self, constraints):
         """
         Dicts have to be initialized before.
         Constraints are of the form a0 + a1x1 + ... + a_d-1 x_d-1 >= 0
         """
+        self.box_constraints = constraints
         self.matrix += constraints
-        boxIndices = list(range(self.m + self.d + 1, self.m + self.d + 1 + len(constraints)))
+        self.startBox = self.m + self.d
+        boxIndices = list(range(self.startBox, self.startBox + len(constraints)))
         self.B += boxIndices
-        self.Row += list(range(self.m + 1, self.m + 1 + len(constraints)))
+        self.C[-1] = boxIndices[-1] + 1
+        self.Row += list(range(self.m + 1, self.m + len(constraints)))
+        self.m += len(constraints)
+        self.boxed = True
 
     def pivot_stays_in_box(self):
         pivotRow = self.Row[self.i]
@@ -65,13 +91,12 @@ class Lrs:
         pivotElement = self.matrix[pivotRow][pivotColumn]
         insideBox = True
         for i, b in enumerate(self.B):
-            if b > self.m + self.d and self.computeEntryAfterPivot(
+            if b >= self.startBox and self.computeEntryAfterPivot(
                     self.Row[i], 0, pivotRow, pivotColumn, pivotElement
             ) > 0:
                 insideBox = False
                 break
         return insideBox
-
 
     def select_pivot(self):
         basis_index = self.d
@@ -98,9 +123,16 @@ class Lrs:
                     raise ValueError
                 cobasis_index += 1
 
+    def firstBoxBasisIndex(self):
+        for i, b in enumerate(self.B):
+            if b >= self.startBox:
+                startBox = i
+                return startBox
+
     def insideBox(self):
-        for k, boxVar in enumerate(self.B[self.m:+1]):
-            if self.matrix[self.Row[self.m + 1 + k]][0] <= 0:
+        basisStartBox = self.firstBoxBasisIndex()
+        for k, boxVar in enumerate(self.B[basisStartBox:]):
+            if self.matrix[self.Row[basisStartBox+ k]][0] < 0:
                 return False
         return True
 
@@ -126,7 +158,7 @@ class Lrs:
                     self.increment()
                     backtrack = False
                 else:
-                    while self.j < self.d - 1 and not self.reverse:
+                    while self.j < self.d - 1 and not self.reverse():
                         self.increment()
                         print('Incrementing -> i={}, j={}'.format(self.i, self.j))
                     if self.j == self.d - 1:
@@ -150,7 +182,11 @@ class Lrs:
     def getPositionVector(self):
         basisIndex = self.d
         position_vector = []
-        for i in range(self.d, self.d + self.m):
+        if self.boxed:
+            last_real_constraint = self.startBox -1
+        else:
+            last_real_constraint = self.d + self.m
+        for i in range(self.d, last_real_constraint + 1):
             if basisIndex <= self.m and self.B[basisIndex] == i:
                 position_vector.append(-1 if self.matrix[self.Row[basisIndex]][0] < 0 else 1)
                 basisIndex += 1
@@ -182,7 +218,6 @@ class Lrs:
             self.pivot()
             return False
 
-
     def necessaryConditionForReverse(self):
         if self.matrix[self.Row[self.i]][0] > 0:
             if (
@@ -202,7 +237,6 @@ class Lrs:
             ):
                 return True
         return False
-
 
     def lex_min(self):
         return True
@@ -275,6 +309,7 @@ class Lrs:
             str += ']\n'
         str += ']'
         print(str)
+
 
 def maxIndexSmallerNumber(list, number):
     """ Assumes sorted input list"""

@@ -86,12 +86,17 @@ def test_negative_search(lrs_from_file):
     lrs.setObjective()
     lrs.search()
 
+
 def test_bounding_box(lrs_from_file):
     lrs = lrs_from_file
     boxConstraint1 = [mpz(-5), mpz(4), mpz(0)]
     boxConstraint2 = [mpz(3), mpz(0), mpz(-1)]
     boxConstraint3 = [mpz(-1), mpz(0), mpz(2)]
     boxConstraint4 = [mpz(3), mpz(0), mpz(-1)]
+    lrs.augmentWithObjective()
+    lrs.initDicts()
     lrs.addBoxConstraints([boxConstraint1, boxConstraint2, boxConstraint3, boxConstraint4])
+    lrs.firstBasis()
+    lrs.firstBasisWithBox()
+    lrs.setObjective()
     print(lrs.printInfo())
-    assert False
