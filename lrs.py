@@ -195,6 +195,7 @@ class Lrs(ABC):
         print('In reverse: i: {}, j:{}'.format(self.i, self.j))
         possibleReversePivot = self.necessaryConditionForReverse()
         if not possibleReversePivot:
+            print('Pivotelement 0: Not valid reverse!')
             return False
         self.pivot()
         i_forward, j_forward = self.select_pivot()
@@ -208,27 +209,7 @@ class Lrs(ABC):
 
     @abstractmethod
     def necessaryConditionForReverse(self):
-        if self.boxed and not self.pivot_stays_in_box(self.i, self.j):
-            print('Reverse Does not stay in box!')
-            return False
-        if self.matrix[self.Row[self.i]][0] > 0:
-            if (
-                    self.matrix[self.Row[self.i]][self.Column[self.j]] > 0 and
-                    all(
-                        self.matrix[self.Row[self.i]][self.Column[k]] >= 0
-                        for k in range(0, maxIndexSmallerNumber(self.C, self.B[self.i]) + 1)
-                    )
-            ):
-                return  True
-        if self.matrix[0][self.Column[self.j]] < 0:
-            if (self.matrix[self.Row[self.i]][self.Column[self.j]] < 0 and
-                all(
-                    self.matrix[self.Row[k]][self.Column[self.j]] <= 0
-                    for k in range(1, maxIndexSmallerNumber(self.C, self.C[self.j]) + 1)
-                )
-            ):
-                return True
-        return False
+        pass
 
     def lex_min(self):
         return True
