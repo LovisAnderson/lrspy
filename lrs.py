@@ -1,9 +1,10 @@
 from gmpy2 import mpz, divexact
 import pytest
 from copy import deepcopy
+from abc import ABC, abstractmethod
 
 
-class Lrs:
+class Lrs(ABC):
     def __init__(self, inequality_matrix, m, d):
         self.matrix = inequality_matrix
         self.B = [] # Basis
@@ -54,7 +55,7 @@ class Lrs:
             while self.matrix[self.Row[self.i]][self.Column[self.j]] == 0:
                 self.i += 1
             self.pivot()
-        while not self.insideBox():
+        while not self.inside_box():
             startBasis = self.firstBoxBasisIndex()
             for i, k in enumerate(self.B[startBasis:]):
                 if self.matrix[self.Row[startBasis + i], 0] < 0:
@@ -81,47 +82,34 @@ class Lrs:
         boxIndices = list(range(self.startBox, self.startBox + len(constraints)))
         self.B += boxIndices
         self.C[-1] = boxIndices[-1] + 1
-        self.Row += list(range(self.m + 1, self.m + len(constraints)))
+        self.Row += list(range(self.m + 1, self.m + 1 + len(constraints)))
         self.m += len(constraints)
         self.boxed = True
 
-    def pivot_stays_in_box(self):
-        pivotRow = self.Row[self.i]
-        pivotColumn = self.Column[self.j]
+    def pivot_stays_in_box(self, i, j):
+        pivotRow = self.Row[i]
+        pivotColumn = self.Column[j]
         pivotElement = self.matrix[pivotRow][pivotColumn]
         insideBox = True
-        for i, b in enumerate(self.B):
+        for k, b in enumerate(self.B):
+            if k == i:
+                if self.C[j] < self.startBox: # If not box variable is pivoted in we do not care about sign
+                    print('Skipped because non pivot Variable', self.C[j])
+                    continue
+                elif self.computeEntryAfterPivot(self.Row[k], 0, pivotRow, pivotColumn, pivotElement) < 0:
+                    insideBox = False
+                    break
+
             if b >= self.startBox and self.computeEntryAfterPivot(
-                    self.Row[i], 0, pivotRow, pivotColumn, pivotElement
-            ) > 0:
+                    self.Row[k], 0, pivotRow, pivotColumn, pivotElement
+            ) < 0:
                 insideBox = False
                 break
         return insideBox
 
+    @abstractmethod
     def select_pivot(self):
-        basis_index = self.d
-        cobasis_index = 0
-        for i in range(self.d, self.d + self.m):
-            if basis_index <= self.m and self.B[basis_index] == i:
-                if self.matrix[self.Row[basis_index]][0] < 0:
-                    # Bi is primal infeasible
-                    print('B[{}] = {} primal infeasible'.format(basis_index, self.B[basis_index]))
-                    for cobasis_index, c in enumerate(self.C):
-                        if self.matrix[self.Row[basis_index]][self.Column[cobasis_index]] > 0:
-                            return basis_index, cobasis_index
-                    raise ValueError
-                basis_index += 1
-            elif cobasis_index < self.d and self.C[cobasis_index] == i:
-                if self.matrix[0][self.Column[cobasis_index]] > 0:
-                    # Ci is dual infeasible
-                    print('C[{}] = {} dual infeasible'.format(cobasis_index, self.C[cobasis_index]))
-                    for basis_index, b in enumerate(self.B):
-                        if basis_index < self.d:
-                            continue
-                        if self.matrix[self.Row[basis_index]][self.Column[cobasis_index]] < 0:
-                            return basis_index, cobasis_index
-                    raise ValueError
-                cobasis_index += 1
+        pass
 
     def firstBoxBasisIndex(self):
         for i, b in enumerate(self.B):
@@ -129,7 +117,7 @@ class Lrs:
                 startBox = i
                 return startBox
 
-    def insideBox(self):
+    def inside_box(self):
         basisStartBox = self.firstBoxBasisIndex()
         for k, boxVar in enumerate(self.B[basisStartBox:]):
             if self.matrix[self.Row[basisStartBox+ k]][0] < 0:
@@ -185,7 +173,7 @@ class Lrs:
         if self.boxed:
             last_real_constraint = self.startBox -1
         else:
-            last_real_constraint = self.d + self.m
+            last_real_constraint = self.d + self.m -1
         for i in range(self.d, last_real_constraint + 1):
             if basisIndex <= self.m and self.B[basisIndex] == i:
                 position_vector.append(-1 if self.matrix[self.Row[basisIndex]][0] < 0 else 1)
@@ -218,12 +206,16 @@ class Lrs:
             self.pivot()
             return False
 
+    @abstractmethod
     def necessaryConditionForReverse(self):
+        if self.boxed and not self.pivot_stays_in_box(self.i, self.j):
+            print('Reverse Does not stay in box!')
+            return False
         if self.matrix[self.Row[self.i]][0] > 0:
             if (
                     self.matrix[self.Row[self.i]][self.Column[self.j]] > 0 and
                     all(
-                        self.matrix[self.Row[self.i]][self.Column[k]] <= 0
+                        self.matrix[self.Row[self.i]][self.Column[k]] >= 0
                         for k in range(0, maxIndexSmallerNumber(self.C, self.B[self.i]) + 1)
                     )
             ):
@@ -310,9 +302,9 @@ class Lrs:
         str += ']'
         print(str)
 
-
-def maxIndexSmallerNumber(list, number):
-    """ Assumes sorted input list"""
-    for i, element in enumerate(list):
-        if element >= number:
-            return i - 1
+    @staticmethod
+    def maxIndexSmallerNumber(list, number):
+        """ Assumes sorted input list"""
+        for i, element in enumerate(list):
+            if element >= number:
+                return i - 1

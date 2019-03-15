@@ -5,98 +5,64 @@ from copy import deepcopy
 from testing.fixtures import *
 
 
+# Concrete dummy of abstract base class for testing purposes
+class ConcreteLrs(Lrs):
+    def __init__(self, inequality_matrix, m, d):
+        super().__init__(inequality_matrix, m, d)
+
+    def set_attributes(self, attributes):
+        # Helper Method to set for test needed attributes
+        for key, attr in attributes.items():
+            setattr(self, key, attr)
+ConcreteLrs.__abstractmethods__ = frozenset()
+
+
+
 def test_augment_with_objective():
     from reader import reader
 
     matrix, m, d = reader('data/arrangement.ine')
-    lrs = Lrs(matrix, m, d)
+    lrs = ConcreteLrs(matrix, m, d)
+
     lrs.augmentWithObjective()
     lrs.initDicts()
     lrs.firstBasis()
 
 
-def test_position_vector():
-    simpleLrs = Lrs.__new__(Lrs)
-    simpleLrs.matrix = [[mpz(2), mpz(1), mpz(0)],
-                        [mpz(2), mpz(-1), mpz(-1)],
-                        [mpz(1), mpz(1), mpz(0)],
-                        [mpz(-1), mpz(2), mpz(2)],
-                        [mpz(1), mpz(-1), mpz(-1)]]
-    simpleLrs.B = [0, 1, 2, 4, 6]
-    simpleLrs.C = [3, 5, 7]
-    simpleLrs.Row = [0, 1, 2, 4, 3]
-    simpleLrs.Column = [2, 1, 0]
-    simpleLrs.d = 3
-    simpleLrs.m = 4
+def test_position_vector(arrangement2):
+    simpleLrs = ConcreteLrs.__new__(ConcreteLrs)
+    simpleLrs.set_attributes(arrangement2)
     simpleLrs.getPositionVector()
     assert simpleLrs.getPositionVector() == [0, 1, 0, -1]
 
 
 def test_pivot(arrangement):
-    matrix_before = deepcopy(arrangement.matrix)
-    B_before = deepcopy(arrangement.B)
-    C_before = deepcopy(arrangement.C)
-    arrangement.i = 4
-    arrangement.j = 0
-    arrangement.pivot()
-    assert list(arrangement.B) == [0, 1, 3, 4, 5]
-    assert list(arrangement.C) == [2, 6, 7]
+    lrs = ConcreteLrs.__new__(ConcreteLrs)
+    lrs.set_attributes(arrangement)
+    matrix_before = deepcopy(lrs.matrix)
+    B_before = deepcopy(lrs.B)
+    C_before = deepcopy(lrs.C)
+    lrs.i = 4
+    lrs.j = 0
+    lrs.pivot()
+    assert list(lrs.B) == [0, 1, 3, 4, 5]
+    assert list(lrs.C) == [2, 6, 7]
     # We pivot back and test if we get the same result
-    arrangement.pivot()
-    assert matrix_before == arrangement.matrix
-    assert B_before == arrangement.B
-    assert C_before == arrangement.C
+    lrs.pivot()
+    assert matrix_before == lrs.matrix
+    assert B_before == lrs.B
+    assert C_before == lrs.C
 
 
-def test_select_pivot(simplex):
-    bare_lrs = Lrs.__new__(Lrs)
-    bare_lrs.matrix = [[mpz(0), mpz(1), mpz(1)],
-                       [mpz(-1), mpz(1), mpz(0)],
-                       [mpz(-1), mpz(0), mpz(1)],
-                       [mpz(2), mpz(-1), mpz(-1)]]
-    bare_lrs.B = [0, 1, 2, 5]
-    bare_lrs.C = [3, 4, 6]
-    bare_lrs.Row = list(range(4))
-    bare_lrs.Column = [1, 2, 0]
-    bare_lrs.m = 3
-    bare_lrs.d = 3
-    i, j = bare_lrs.select_pivot()
-    assert i == 3
-    assert j == 0
-
-
-def test_search(lrs_from_file):
-    lrs = lrs_from_file
-    lrs.augmentWithObjective()
-    lrs.initDicts()
-    lrs.firstBasis()
-    lrs.setObjective()
-    lrs.search()
-    bases = [[0, 1, 2, 5, 6], [0, 1, 2, 3, 6], [0, 1, 2, 4, 6], [0, 1, 2, 4, 5], [0, 1, 2, 3, 4]]
-    assert all(basis in lrs.bases for basis in bases)
-
-
-def test_negative_search(lrs_from_file):
-    lrs = lrs_from_file
-    lrs.augmentWithObjective()
-    lrs.matrix[2][0] += 10
-    lrs.printInfo()
-    lrs.initDicts()
-    lrs.firstBasis()
-    lrs.setObjective()
-    lrs.search()
-
-
-def test_bounding_box(lrs_from_file):
-    lrs = lrs_from_file
+def test_bounding_box(from_file):
+    lrs = ConcreteLrs(*from_file)
     boxConstraint1 = [mpz(-5), mpz(4), mpz(0)]
     boxConstraint2 = [mpz(3), mpz(0), mpz(-1)]
     boxConstraint3 = [mpz(-1), mpz(0), mpz(2)]
-    boxConstraint4 = [mpz(3), mpz(0), mpz(-1)]
+    boxConstraint4 = [mpz(3), mpz(-1), mpz(0)]
     lrs.augmentWithObjective()
     lrs.initDicts()
     lrs.addBoxConstraints([boxConstraint1, boxConstraint2, boxConstraint3, boxConstraint4])
     lrs.firstBasis()
     lrs.firstBasisWithBox()
     lrs.setObjective()
-    print(lrs.printInfo())
