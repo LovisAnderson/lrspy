@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 class Lrs(ABC):
     def __init__(self, inequality_matrix, m, d):
         self.matrix = inequality_matrix
+        self.inequality_ordering = [] # list that
         self.B = [] # Basis
         self.C = [] # Cobasis
         self.Row = [] # B[i] is to be found in Row[i] of matrix
@@ -33,6 +34,7 @@ class Lrs(ABC):
 
     def initDicts(self):
         self.B = [0] + list(range(self.d, self.d + self.m))
+        self.inequality_ordering = list(range(self.d, self.d + self.m))
         self.Row = list(range(self.m + 1))
         self.C = list(range(1, self.d)) + [self.d + self.m]
         self.Column = list(range(1, self.d)) + [0]
@@ -46,7 +48,19 @@ class Lrs(ABC):
                 self.i += 1
             self.pivot()
         self.printInfo('After first basis')
+        self.resort_inequalities()
         self.appendSolution()
+
+    def resort_inequalities(self):
+        # Sorts variables corresponding to inequalities s.t. they basis is 0, ..., m
+        # Assumes initialized dicts with variables 0,..,d at start of basis and d+m at end of cobasis
+        for i, b in enumerate(self.B[self.d:]):
+            self.inequality_ordering[i] = b
+            self.B[i + self.d] = i + self.d
+        for i, c in enumerate(self.C[:-1]):
+            self.inequality_ordering[self.m - self.d + 1 + i] = c
+            self.C[i] = self.m + 1 + i
+        print('inequality ordering: {}'.format(self.inequality_ordering))
 
     def firstBasisWithBox(self):
         for k in range(self.d - 1):
@@ -159,6 +173,7 @@ class Lrs(ABC):
 
     def appendSolution(self):
         print('Append basis: {}'.format(self.B))
+        print('Vertex: {}'.format(self.getVertex()))
         self.bases.append(deepcopy(self.B))
         self.vertices.append(self.getVertex())
         self.position_vectors.append(self.getPositionVector())
@@ -195,7 +210,7 @@ class Lrs(ABC):
         print('In reverse: i: {}, j:{}'.format(self.i, self.j))
         possibleReversePivot = self.necessaryConditionForReverse()
         if not possibleReversePivot:
-            print('Pivotelement 0: Not valid reverse!')
+            print('Not a possible reverse pivot!')
             return False
         self.pivot()
         i_forward, j_forward = self.select_pivot()
