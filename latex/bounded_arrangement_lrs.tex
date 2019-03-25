@@ -1,0 +1,55 @@
+\documentclass[]{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+%%%%%%%%%%%%%Macros%%%%%%%%%%%%%%\\
+\newcommand{\bma}{\bm{a}}
+\newcommand{\bmx}{\bm{ax}}
+\usepackage{amsthm}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+ 
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+%opening
+\title{Boxed lrs for the enumeration of vertices of a hyperplane arrangement}
+\author{Lovis Anderson}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+
+\end{abstract}
+\section{Introduction}
+A hyperplane arrangement $\mathcal{H}$ that lives in $\mathbb{R}^d$ is a set of hyperplanes $H_i$, which are defined by their normals $\bm{a}_i \in \mathbb{R}^d$ and offsets $b_i$ through 
+$$H_i := \{\bm{x} \in \mathbb{R}^d \vert \langle \bm{x}, \bm{a} \rangle + b = 0 \}$$
+ for $i \in [m]$ Our first goal is to enumerate over all vertices of a hyperplane arrangement. Later we want to restrict this enumeration to vertices that suffice a set of inequalities which define our box. We first introduce lrs for hyperplane arrangements and will later show how we can extend the formulation and pivot rules to restrict the search to a bounding box.
+\subsection{Standard form}
+For a hyperplane arrangement $\mathcal{H} = \{H_1, \dots , H_m\}$ in $\mathbb{R}^d$ defined by their normals and offsets $(\bm{a}_1, b_1), \dots,  \bm{a}_m, b_m)$ we introduce slack variables $x_{d+1}, \dots , x_{d+m}$. We write
+\begin{align*}
+&b_1+ a_1^1x_1 +	\dots	 +a_1^d x_d +  x_{d+1}	& = 0 \\
+&b_2+ a_2^1x_1 +	\dots	 +a_2^d x_d +  x_{d+2} 	&= 0 \\
+&\vdots 		 				 					&\vdots \\
+&b_m+ a_m^1x_1 +	\dots	 +a_m^d x_d +  x_{d+m} 	&= 0 \\
+\end{align*}
+and observe that for a given vertex defined by $x_1, \dots, x_d$ at least 2 slack variables are $0$. We even have equivalence here, that means if $x_i = x_j = 0$ for some $i,j \in \{d+1, d+m\}$ $x_1, \dots, x_d$ define a vertex.
+\subsection{Lrs, basis and cobasis}
+Lrs works on two dictionaries, namely the basis and the cobasis. In the basis we find all variables that are unequal $0$. All cobasis variables are $0$. We use the fact, that for a degenerate vertex exactly $d$ many hyperplanes are active, i.e. have slack $0$. By swapping basis and cobasis variables we move from one vertex to another this way. We describe the basis variables through their indices, so for the natural variables we use $\{1, \dots, d\}$ and for the slack variables $\{d+1, \dots, d+m\}$
+\subsection{Objective Function}
+We want to reverse the simplex algorithm, which enumerates over vertices of a polytope or arrangement s.t. the optimum of the objective function is attained. That means we need an objective function which we define after finding our initial basis in a way that the initial basis is our optimal solution.
+\section{Initial Basis}
+We start with the basis $B = \{0, d+1, \dots , d+m\}$. We then move For the unboxed variant we have to make sure that the real variables $1, \dots , d$ are always in the basis if we want only enumerate real vertices. So we first move the variables $x_1, \dots, x_d$ into the basis. Naively this can be done by iteratively over $j \in \{1,\dots ,d\}$ by looking for a $i \in B \ \{1,\dots,d\}$  such that  $(i,j)$ is a valid pivot.
+\section{Search Procedure}
+After finding our initial basis and defining the objective function such that the initial basis is the optimal solution we want to go back in the search tree. So we assume that our initial basis is given by $\{0, \dots, m\}$ which can easily be archieved through relabeling of slack variables. We now look for new bases by trying out combinations of $i \in B$ and $j \in C$ and assesing if it is a valid reverse pivot.
+\begin{definition}
+A pivot $i \in B, j \in C$  is a valid reverse pivot for any given pivot rule, if the pivot rule applied on the dictionaries $B - i + j$ and $C-j+i$ would return the pivot $j, i$.
+\end{definition}
+\section{Pivot Rules}
+\subsection{Criss Cross}
+\subsection{Bland}
+\section{Bounding Box}
+\subsection{Initial Basis}
+\end{document}
