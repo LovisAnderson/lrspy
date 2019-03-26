@@ -3,13 +3,16 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{bm}
+%for algorithm
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 %%%%%%%%%%%%%Macros%%%%%%%%%%%%%%\\
 \newcommand{\bma}{\bm{a}}
 \newcommand{\bmx}{\bm{ax}}
 \usepackage{amsthm}
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[section]
- 
+
 \theoremstyle{remark}
 \newtheorem*{remark}{Remark}
 %opening
@@ -24,7 +27,7 @@
 
 \end{abstract}
 \section{Introduction}
-A hyperplane arrangement $\mathcal{H}$ that lives in $\mathbb{R}^d$ is a set of hyperplanes $H_i$, which are defined by their normals $\bm{a}_i \in \mathbb{R}^d$ and offsets $b_i$ through 
+A hyperplane arrangement $\mathcal{H}$ that lives in $\mathbb{R}^d$ is a set of hyperplanes $H_i$, which are defined by their normals $\bm{a}_i \in \mathbb{R}^d$ and offsets $b_i$ through
 $$H_i := \{\bm{x} \in \mathbb{R}^d \vert \langle \bm{x}, \bm{a} \rangle + b = 0 \}$$
  for $i \in [m]$ Our first goal is to enumerate over all vertices of a hyperplane arrangement. Later we want to restrict this enumeration to vertices that suffice a set of inequalities which define our box. We first introduce lrs for hyperplane arrangements and will later show how we can extend the formulation and pivot rules to restrict the search to a bounding box.
 \subsection{Standard form}
@@ -43,13 +46,34 @@ We want to reverse the simplex algorithm, which enumerates over vertices of a po
 \section{Initial Basis}
 We start with the basis $B = \{0, d+1, \dots , d+m\}$. We then move For the unboxed variant we have to make sure that the real variables $1, \dots , d$ are always in the basis if we want only enumerate real vertices. So we first move the variables $x_1, \dots, x_d$ into the basis. Naively this can be done by iteratively over $j \in \{1,\dots ,d\}$ by looking for a $i \in B \ \{1,\dots,d\}$  such that  $(i,j)$ is a valid pivot.
 \section{Search Procedure}
-After finding our initial basis and defining the objective function such that the initial basis is the optimal solution we want to go back in the search tree. So we assume that our initial basis is given by $\{0, \dots, m\}$ which can easily be archieved through relabeling of slack variables. We now look for new bases by trying out combinations of $i \in B$ and $j \in C$ and assesing if it is a valid reverse pivot.
+After finding our initial basis and defining the objective function such that the initial basis is the optimal solution we want to go back in the search tree. So we assume that our initial basis is given by $\{0, \dots, m\}$ which can easily be archieved through relabeling of slack variables. We now look for new bases by trying out combinations of $i \in B$ and $j \in C$ and assessing if it is a valid reverse pivot.
 \begin{definition}
 A pivot $i \in B, j \in C$  is a valid reverse pivot for any given pivot rule, if the pivot rule applied on the dictionaries $B - i + j$ and $C-j+i$ would return the pivot $j, i$.
 \end{definition}
+\begin{algorithm}
+\caption{Search Procedure}
+\hspace*{\algorithmicindent} \textbf{Input}\\
+\hspace*{\algorithmicindent} \textbf{Output}
+\begin{algorithmic}[1]
+\State $i := \text{len}(C)$
+\State $j := 0$
+\While{True}
+\While{$\text{reverse}(i, j)$}
+\State $j := 0$
+\EndWhile
+\EndWhile
+%\If{$\mathcal{K}_{\bm{v}}$ is not empty}
+%\State $E$.append($\bm{v}, \mathcal{K}_{\bm{v}}$)\;
+%\ElsIf{$K_{\bm{v}}$ is full-dimensional}
+%\EndIf \\
+\Return $E$
+\end{algorithmic}
+\end{algorithm}
 \section{Pivot Rules}
 \subsection{Criss Cross}
 \subsection{Bland}
 \section{Bounding Box}
 \subsection{Initial Basis}
+\subsection{Criss Cross}
+We need to adapt the necessary conditions for a pivot tuple $(i, j)$ to be a valid criss cross pivot.
 \end{document}
