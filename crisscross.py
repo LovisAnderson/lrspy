@@ -25,7 +25,7 @@ class CrissCross(lrs.Lrs):
                     # Ci is dual infeasible
                     print('C[{}] = {} dual infeasible'.format(cobasis_index, self.C[cobasis_index]))
                     for basis_index, b in enumerate(self.B):
-                        if basis_index < self.d:
+                        if b < self.d:
                             continue
                         if self.boxed and not self.pivot_stays_in_box(basis_index, cobasis_index):
                             continue
@@ -33,6 +33,7 @@ class CrissCross(lrs.Lrs):
                             return basis_index, cobasis_index
                     raise ValueError
                 cobasis_index += 1
+        return 0, 0
 
     def necessaryConditionForReverse(self):
         if self.boxed:

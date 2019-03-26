@@ -115,7 +115,7 @@ class Lrs(ABC):
             box_v = Variable(i)
             box_v.box_variable = True
             box_v.slack_variable = True
-            box_v.hyperplane_index = i - self.d + 1
+            box_v.hyperplane_index = i - self.d
             box_variables.append(box_v)
         self.B += box_variables
         self.C[-1] = self.C[-1].change_variable(self.m + self.d + len(constraints))
@@ -128,20 +128,23 @@ class Lrs(ABC):
         pivotColumn = self.C.order[j]
         pivotElement = self.matrix[pivotRow][pivotColumn]
         insideBox = True
+
         for k, b in enumerate(self.B):
             if k == i:
                 if not self.C[j].box_variable: # If a not box variable is pivoted in we do not care about sign
-                    print('Skipped because non pivot Variable', self.C[j])
                     continue
                 elif self.computeEntryAfterPivot(self.B.order[k], 0, pivotRow, pivotColumn, pivotElement) < 0:
                     insideBox = False
                     break
-
-            if b.box_variable and self.computeEntryAfterPivot(
+            elif b.box_variable:
+                # Determinant sign is changed before matrix update if pivotelement < 0
+                # Therefore we need this multiplier to get True output
+                detMultiplier = 1 if pivotElement > 0 else -1
+                if detMultiplier * self.computeEntryAfterPivot(
                     self.B.order[k], 0, pivotRow, pivotColumn, pivotElement
             ) < 0:
-                insideBox = False
-                break
+                    insideBox = False
+                    break
         return insideBox
 
     @abstractmethod
