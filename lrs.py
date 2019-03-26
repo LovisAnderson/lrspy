@@ -99,6 +99,7 @@ class Lrs(ABC):
             if self.j == self.d:
                 raise ValueError
             self.pivot()
+        self.resort_inequalities()
         self.printInfo('After first basis with bounding box')
 
     def addBoxConstraints(self, constraints):
