@@ -36,9 +36,11 @@ class CrissCross(lrs.Lrs):
                 cobasis_index += 1
 
     def necessaryConditionForReverse(self):
-        if self.boxed and not self.pivot_stays_in_box(self.i, self.j):
-            print('Reverse Does not stay in box!')
-            return False
+        if self.boxed:
+            if not self.pivot_stays_in_box(self.i, self.j):
+                print('Reverse Does not stay in box!')
+                return False
+            return self.matrix[self.Row[self.i]][self.Column[self.j]] != 0
         if self.matrix[self.Row[self.i]][0] > 0:
             if (
                     self.matrix[self.Row[self.i]][self.Column[self.j]] > 0 and
