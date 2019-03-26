@@ -22,7 +22,6 @@ class Lrs(ABC):
         self.j = 0 # Cobasis index in which we pivot
         self.boxed = False # Flag that indicates if we pivot inside a box (given through constraints)
 
-
     def setObjective(self):
         for i in range(1, self.d):
             self.matrix[0][i] = mpz(-self.det)
@@ -49,7 +48,8 @@ class Lrs(ABC):
             self.pivot()
         self.printInfo('After first basis')
         self.resort_inequalities()
-        self.appendSolution()
+        if not self.boxed:
+            self.appendSolution()
 
     def resort_inequalities(self):
         # Sorts variables corresponding to inequalities s.t. they basis is 0, ..., m
@@ -57,25 +57,26 @@ class Lrs(ABC):
         for i, b in enumerate(self.B[self.d:]):
             self.inequality_ordering[i] = b
             self.B[i + self.d] = i + self.d
+            if self.boxed and b in self.boxIndices:
+                self.boxIndices.remove(b)
+                self.boxIndices.add(i)
         for i, c in enumerate(self.C[:-1]):
             self.inequality_ordering[self.m - self.d + 1 + i] = c
             self.C[i] = self.m + 1 + i
+            if self.boxed and b in self.boxIndices:
+                self.boxIndices.remove(b)
+                self.boxIndices.add(i)
         print('inequality ordering: {}'.format(self.inequality_ordering))
 
     def firstBasisWithBox(self):
-        for k in range(self.d - 1):
-            self.j = 0
-            self.i = self.firstBoxBasisIndex()
-            while self.matrix[self.Row[self.i]][self.Column[self.j]] == 0:
-                self.i += 1
-            self.pivot()
         while not self.inside_box():
-            startBasis = self.firstBoxBasisIndex()
-            for i, k in enumerate(self.B[startBasis:]):
-                if self.matrix[self.Row[startBasis + i], 0] < 0:
+            for i, b in enumerate(self.B):
+                if b not in self.boxIndices:
+                    continue
+                elif self.matrix[self.Row[i]][0] < 0:
                     # Primal infeasible Variable
-                    self.i = startBasis + i
-
+                    self.i = i
+                    break
             while self.matrix[self.Row[self.i]][self.Column[self.j]] <= 0:
                 # To get primal feasible variable the sign of A[Row[i]][0] has to change
                 # This happens if A[Row[i]][Column[j]] > 0
@@ -93,12 +94,13 @@ class Lrs(ABC):
         self.box_constraints = constraints
         self.matrix += constraints
         self.startBox = self.m + self.d
-        boxIndices = list(range(self.startBox, self.startBox + len(constraints)))
-        self.B += boxIndices
-        self.C[-1] = boxIndices[-1] + 1
+        self.boxIndices = set(list(range(self.startBox, self.startBox + len(constraints))))
+        self.B += list(range(self.startBox, self.startBox + len(constraints)))
+        self.C[-1] = self.m + self.d + len(constraints)
         self.Row += list(range(self.m + 1, self.m + 1 + len(constraints)))
         self.m += len(constraints)
         self.boxed = True
+        self.inequality_ordering = list(range(self.d, self.d + self.m))
 
     def pivot_stays_in_box(self, i, j):
         pivotRow = self.Row[i]
@@ -107,14 +109,14 @@ class Lrs(ABC):
         insideBox = True
         for k, b in enumerate(self.B):
             if k == i:
-                if self.C[j] < self.startBox: # If not box variable is pivoted in we do not care about sign
+                if self.C[j] not in self.boxIndices: # If not box variable is pivoted in we do not care about sign
                     print('Skipped because non pivot Variable', self.C[j])
                     continue
                 elif self.computeEntryAfterPivot(self.Row[k], 0, pivotRow, pivotColumn, pivotElement) < 0:
                     insideBox = False
                     break
 
-            if b >= self.startBox and self.computeEntryAfterPivot(
+            if b in self.boxIndices and self.computeEntryAfterPivot(
                     self.Row[k], 0, pivotRow, pivotColumn, pivotElement
             ) < 0:
                 insideBox = False
@@ -132,9 +134,10 @@ class Lrs(ABC):
                 return startBox
 
     def inside_box(self):
-        basisStartBox = self.firstBoxBasisIndex()
-        for k, boxVar in enumerate(self.B[basisStartBox:]):
-            if self.matrix[self.Row[basisStartBox+ k]][0] < 0:
+        for k, boxVar in enumerate(self.B):
+            if boxVar not in self.boxIndices:
+                continue
+            if self.matrix[self.Row[k]][0] < 0:
                 return False
         return True
 
@@ -145,6 +148,7 @@ class Lrs(ABC):
         backtrack = False
         while nextbasis:
             self.j = 0
+            self.i = self.d
             while self.j < self.d or self.B[self.m] != self.m:
                 if self.j == self.d - 1 and self.B[self.m] == self.m:
                     print('All bases found!')
@@ -157,12 +161,14 @@ class Lrs(ABC):
                     print('Pivoting back!')
                     self.i, self.j = self.select_pivot()
                     self.pivot()
+                    # self.i = self.d
+                    # self.j += 1
                     self.increment()
+                    print('i: {}, j: {}'.format(self.i, self.j))
                     backtrack = False
                 else:
                     while self.j < self.d - 1 and not self.reverse():
                         self.increment()
-                        print('Incrementing -> i={}, j={}'.format(self.i, self.j))
                     if self.j == self.d - 1:
                         backtrack = True
                     else:
