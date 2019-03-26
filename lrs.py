@@ -1,17 +1,15 @@
 from gmpy2 import mpz, divexact
-import pytest
+from lrs_datastructures import LrsDict, Variable
 from copy import deepcopy
 from abc import ABC, abstractmethod
 
 
 class Lrs(ABC):
-    def __init__(self, inequality_matrix, m, d):
-        self.matrix = inequality_matrix
-        self.inequality_ordering = [] # list that
-        self.B = [] # Basis
-        self.C = [] # Cobasis
-        self.Row = [] # B[i] is to be found in Row[i] of matrix
-        self.Column = [] # C[i] is to be found in Column[i] of matrix
+    def __init__(self, hyperplane_matrix, m, d):
+        self.matrix = hyperplane_matrix
+        self.nr_hyperplanes = m
+        self.B = LrsDict() # Basis
+        self.C = LrsDict() # Cobasis
         self.m = m # Number of input hyperplanes
         self.d = d # dimension of embedding space + 1 (projective dimension)
         self.det = mpz(1) # determinant of the matrix, quasi the shared denominator
@@ -31,53 +29,70 @@ class Lrs(ABC):
         objectiveRow[0] = mpz(0)
         self.matrix.insert(0, objectiveRow)
 
+    def initBasis(self):
+        # InitializeBasis
+        self.B = LrsDict()
+        f = Variable(0)
+        f.basis_index = 0
+        f.box_variable = False
+        f.slack_variable = False
+        self.B.append(f)
+        for i in range(self.d, self.d + self.m):
+            b = Variable(i)
+            b.box_variable = False
+            b.slack_variable = True
+            b.hyperplane_index = i - self.d
+            self.B.append(b)
+        self.B.order = list(range(self.m + 1))
+
+    def initCobasis(self):
+        for i in range(1, self.d):
+            c = Variable(i)
+            c.box_variable = False
+            c.slack_variable = False
+            self.C.append(c)
+        g = Variable(self.d + self.m)
+        g.box_variable = False
+        g.slack_variable = False
+        self.C.append(g)
+        self.C.order = list(range(1, self.d)) + [0]
+
     def initDicts(self):
-        self.B = [0] + list(range(self.d, self.d + self.m))
-        self.inequality_ordering = list(range(self.d, self.d + self.m))
-        self.Row = list(range(self.m + 1))
-        self.C = list(range(1, self.d)) + [self.d + self.m]
-        self.Column = list(range(1, self.d)) + [0]
+        self.initBasis()
+        self.initCobasis()
 
     def firstBasis(self):
         for k in range(self.d - 1):
             self.j = 0
             self.i = 1
             while (self.B[self.i] in range(1, self.d) or
-                   self.matrix[self.Row[self.i]][self.Column[self.j]] == 0):
+                   self.matrix[self.B.order[self.i]][self.C.order[self.j]] == 0):
                 self.i += 1
             self.pivot()
-        self.printInfo('After first basis')
         self.resort_inequalities()
         if not self.boxed:
             self.appendSolution()
+        self.printInfo('After first basis')
 
     def resort_inequalities(self):
         # Sorts variables corresponding to inequalities s.t. they basis is 0, ..., m
         # Assumes initialized dicts with variables 0,..,d at start of basis and d+m at end of cobasis
+
         for i, b in enumerate(self.B[self.d:]):
-            self.inequality_ordering[i] = b
-            self.B[i + self.d] = i + self.d
-            if self.boxed and b in self.boxIndices:
-                self.boxIndices.remove(b)
-                self.boxIndices.add(i)
+            self.B[i + self.d] = self.B[i + self.d].change_variable(i + self.d)
         for i, c in enumerate(self.C[:-1]):
-            self.inequality_ordering[self.m - self.d + 1 + i] = c
-            self.C[i] = self.m + 1 + i
-            if self.boxed and b in self.boxIndices:
-                self.boxIndices.remove(b)
-                self.boxIndices.add(i)
-        print('inequality ordering: {}'.format(self.inequality_ordering))
+            self.C[i] = self.C[i].change_variable(self.m + 1 + i)
 
     def firstBasisWithBox(self):
         while not self.inside_box():
             for i, b in enumerate(self.B):
-                if b not in self.boxIndices:
+                if not b.box_variable:
                     continue
-                elif self.matrix[self.Row[i]][0] < 0:
+                elif self.matrix[self.B.order[i]][0] < 0:
                     # Primal infeasible Variable
                     self.i = i
                     break
-            while self.matrix[self.Row[self.i]][self.Column[self.j]] <= 0:
+            while self.matrix[self.B.order[self.i]][self.C.order[self.j]] <= 0:
                 # To get primal feasible variable the sign of A[Row[i]][0] has to change
                 # This happens if A[Row[i]][Column[j]] > 0
                 self.j += 1
@@ -94,30 +109,35 @@ class Lrs(ABC):
         self.box_constraints = constraints
         self.matrix += constraints
         self.startBox = self.m + self.d
-        self.boxIndices = set(list(range(self.startBox, self.startBox + len(constraints))))
-        self.B += list(range(self.startBox, self.startBox + len(constraints)))
-        self.C[-1] = self.m + self.d + len(constraints)
-        self.Row += list(range(self.m + 1, self.m + 1 + len(constraints)))
+        box_variables = []
+        for i in range(self.m + self.d, self.m + self.d + len(constraints)):
+            box_v = Variable(i)
+            box_v.box_variable = True
+            box_v.slack_variable = True
+            box_v.hyperplane_index = i - self.d + 1
+            box_variables.append(box_v)
+        self.B += box_variables
+        self.C[-1] = self.C[-1].change_variable(self.m + self.d + len(constraints))
+        self.B.order += list(range(self.m + 1, self.m + 1 + len(constraints)))
         self.m += len(constraints)
         self.boxed = True
-        self.inequality_ordering = list(range(self.d, self.d + self.m))
 
     def pivot_stays_in_box(self, i, j):
-        pivotRow = self.Row[i]
-        pivotColumn = self.Column[j]
+        pivotRow = self.B.order[i]
+        pivotColumn = self.C.order[j]
         pivotElement = self.matrix[pivotRow][pivotColumn]
         insideBox = True
         for k, b in enumerate(self.B):
             if k == i:
-                if self.C[j] not in self.boxIndices: # If not box variable is pivoted in we do not care about sign
+                if not self.C[j].box_variable: # If a not box variable is pivoted in we do not care about sign
                     print('Skipped because non pivot Variable', self.C[j])
                     continue
-                elif self.computeEntryAfterPivot(self.Row[k], 0, pivotRow, pivotColumn, pivotElement) < 0:
+                elif self.computeEntryAfterPivot(self.B.order[k], 0, pivotRow, pivotColumn, pivotElement) < 0:
                     insideBox = False
                     break
 
-            if b in self.boxIndices and self.computeEntryAfterPivot(
-                    self.Row[k], 0, pivotRow, pivotColumn, pivotElement
+            if b.box_variable and self.computeEntryAfterPivot(
+                    self.B.order[k], 0, pivotRow, pivotColumn, pivotElement
             ) < 0:
                 insideBox = False
                 break
@@ -127,17 +147,9 @@ class Lrs(ABC):
     def select_pivot(self):
         pass
 
-    def firstBoxBasisIndex(self):
-        for i, b in enumerate(self.B):
-            if b >= self.startBox:
-                startBox = i
-                return startBox
-
     def inside_box(self):
-        for k, boxVar in enumerate(self.B):
-            if boxVar not in self.boxIndices:
-                continue
-            if self.matrix[self.Row[k]][0] < 0:
+        for k, v in enumerate(self.B):
+            if v.box_variable and self.matrix[self.B.order[k]][0] < 0:
                 return False
         return True
 
@@ -161,8 +173,7 @@ class Lrs(ABC):
                     print('Pivoting back!')
                     self.i, self.j = self.select_pivot()
                     self.pivot()
-                    # self.i = self.d
-                    # self.j += 1
+
                     self.increment()
                     print('i: {}, j: {}'.format(self.i, self.j))
                     backtrack = False
@@ -185,30 +196,22 @@ class Lrs(ABC):
         self.position_vectors.append(self.getPositionVector())
 
     def getVertex(self):
-        vertex = tuple(self.matrix[self.Row[k]][0] / self.det for k in range(1, self.d))
+        vertex = tuple(self.matrix[self.B.order[k]][0] / self.det for k in range(1, self.d))
         return vertex
 
     def getPositionVector(self):
-        basisIndex = self.d
-        position_vector = []
-        if self.boxed:
-            last_real_constraint = self.startBox -1
-        else:
-            last_real_constraint = self.d + self.m -1
-        for i in range(self.d, last_real_constraint + 1):
-            if basisIndex <= self.m and self.B[basisIndex] == i:
-                position_vector.append(-1 if self.matrix[self.Row[basisIndex]][0] < 0 else 1)
-                basisIndex += 1
-            else:
-                position_vector.append(0)
+        position_vector = [0]*self.nr_hyperplanes
+        for i, b in enumerate(self.B):
+            if b.slack_variable and not b.box_variable:
+                position_vector[b.hyperplane_index] = 1 if self.matrix[self.B.order[i]][0] < 0 else -1
         return position_vector
 
     def update(self):
         B_out = deepcopy(self.B[self.i])
         C_Out = deepcopy(self.C[self.j])
         self.B[self.i], self.C[self.j] = self.C[self.j], self.B[self.i]
-        self.B, self.Row = self.sortDictionary(self.B, self.Row)
-        self.C, self.Column = self.sortDictionary(self.C, self.Column)
+        self.B.sort_respecting_order()
+        self.C.sort_respecting_order()
         self.i = self.B.index(C_Out)
         self.j = self.C.index(B_out)
 
@@ -240,7 +243,6 @@ class Lrs(ABC):
             print(infoString)
         print('Basis: {}'.format(self.B))
         print('Cobasis: {}'.format(self.C))
-        print('rows: {}, columns: {}'.format(self.Row, self.Column))
         print('det: {}'.format(self.det))
         print('matrix: ')
         self.pretty_print_matrix()
@@ -265,8 +267,8 @@ class Lrs(ABC):
         print('pivot: outIndex: {}; inIndex: {}'.format(self.i, self.j))
         print('outVariable: {}; inVariable: {}'.format(self.B[self.i], self.C[self.j]))
 
-        row = self.Row[self.i]
-        column = self.Column[self.j]
+        row = self.B.order[self.i]
+        column = self.C.order[self.j]
         pivotElement = deepcopy(self.matrix[row][column])
         self.det = self.det if pivotElement > 0 else -self.det
 

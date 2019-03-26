@@ -2,7 +2,7 @@ from gmpy2 import mpz
 from reader import reader
 import pytest
 from pathlib import Path
-
+from lrs_datastructures import LrsDict, Variable
 
 @pytest.fixture
 def arrangement():
@@ -12,9 +12,10 @@ def arrangement():
               [mpz(-1), mpz(0), mpz(1)],
               [mpz(-4), mpz(2), mpz(1)]]
     B = [0, 3, 4, 5, 6]
+    B = LrsDict(list(Variable(b) for b in B))
     C = [1, 2, 7]
-    Row = list(range(5))
-    Column = [1, 2, 0]
+    C = LrsDict(list(Variable(c) for c in C))
+    C.order = [1, 2, 0]
     m = 4
     d = 3
     det = 1
@@ -22,11 +23,10 @@ def arrangement():
         'matrix': matrix,
         'B': B,
         'C': C,
-        'Row': Row,
-        'Column': Column,
         'm': m,
         'd': d,
-        'det': det
+        'det': det,
+        'nr_hyperplanes': m,
     }
     return attributes
 
@@ -39,9 +39,18 @@ def arrangement2():
               [mpz(-1), mpz(2), mpz(2)],
               [mpz(1), mpz(-1), mpz(-1)]]
     B = [0, 1, 2, 4, 6]
+    B = LrsDict(list(Variable(b) for b in B))
+    B[3].slack_variable = True
+    B[3].hyperplane_index = 1
+    B[4].slack_variable = True
+    B[4].hyperplane_index = 3
     C = [3, 5, 7]
-    Row = [0, 1, 2, 4, 3]
-    Column = [2, 1, 0]
+    C = LrsDict(list(Variable(c) for c in C))
+    C.order = [2, 1, 0]
+    C[0].slack_variable = True
+    C[0].hyperplane_index = 0
+    C[1].slack_variable = True
+    C[1].hyperplane_index = 2
     d = 3
     m = 4
     boxed = False
@@ -49,11 +58,10 @@ def arrangement2():
         'matrix': matrix,
         'B': B,
         'C': C,
-        'Row': Row,
-        'Column': Column,
         'm': m,
         'd': d,
-        'boxed': boxed
+        'boxed': boxed,
+        'nr_hyperplanes': m,
     }
 
     return attributes
@@ -66,9 +74,10 @@ def simplex():
               [mpz(-1), mpz(0), mpz(1)],
               [mpz(2), mpz(-1), mpz(-1)], ]
     B = [0, 3, 4, 5]
+    B = LrsDict(list(Variable(b) for b in B))
     C = [1, 2, 6]
-    Row = list(range(4))
-    Column = [1, 2, 0]
+    C = LrsDict(list(Variable(c) for c in C))
+    C.order = [1, 2, 0]
     m = 3
     d = 3
     det = 1
@@ -77,11 +86,10 @@ def simplex():
         'matrix': matrix,
         'B': B,
         'C': C,
-        'Row': Row,
-        'Column': Column,
         'm': m,
         'd': d,
-        'det': det
+        'det': det,
+        'nr_hyperplanes': m,
     }
 
     return attributes

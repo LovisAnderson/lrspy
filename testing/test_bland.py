@@ -1,6 +1,7 @@
 from testing.fixtures import *
 from gmpy2 import mpz
 from bland import Bland
+from lrs_datastructures import LrsDict, Variable
 
 
 def test_select_pivot(simplex):
@@ -10,10 +11,9 @@ def test_select_pivot(simplex):
                        [mpz(-1), mpz(0), mpz(1)],
                        [mpz(2), mpz(-1), mpz(-1)],
                        [mpz(1), mpz(-1), mpz(-1)]]
-    bare_lrs.B = [0, 1, 2, 5, 6]
-    bare_lrs.C = [3, 4, 7]
-    bare_lrs.Row = list(range(5))
-    bare_lrs.Column = [1, 2, 0]
+    bare_lrs.B = LrsDict([0, 1, 2, 5, 6])
+    bare_lrs.C = LrsDict([3, 4, 7])
+    bare_lrs.C.order = [1, 2, 0]
     bare_lrs.m = 4
     bare_lrs.d = 3
     bare_lrs.boxed = False

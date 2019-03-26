@@ -7,8 +7,8 @@ from testing.fixtures import *
 
 # Concrete dummy of abstract base class for testing purposes
 class ConcreteLrs(Lrs):
-    def __init__(self, inequality_matrix, m, d):
-        super().__init__(inequality_matrix, m, d)
+    def __init__(self, hyperplane_matrix, m, d):
+        super().__init__(hyperplane_matrix, m, d)
 
     def set_attributes(self, attributes):
         # Helper Method to set for test needed attributes
