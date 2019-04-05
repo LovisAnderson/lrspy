@@ -1,6 +1,6 @@
 from crisscross import CrissCross
 from lrs_datastructures import LrsDict, Variable
-from gmpy2 import mpz
+from gmpy2 import mpz, mpfr
 from testing.fixtures import *
 
 
@@ -57,3 +57,14 @@ def test_box_search(from_file):
     lrs.firstBasisWithBox()
     lrs.setObjective()
     lrs.search()
+
+def test_zero_vertex(zero_vertex):
+    lrs = CrissCross(*zero_vertex)
+    lrs.augmentWithObjective()
+    lrs.initDicts()
+    lrs.firstBasis()
+    lrs.setObjective()
+    lrs.search()
+    def is_zero(point):
+        return all(vi == 0 for vi in point)
+    assert any(is_zero(v) for v in lrs.vertices)

@@ -17,11 +17,9 @@ class ConcreteLrs(Lrs):
 ConcreteLrs.__abstractmethods__ = frozenset()
 
 
+def test_augment_with_objective(from_file):
 
-def test_augment_with_objective():
-    from reader import reader
-
-    matrix, m, d = reader('data/arrangement.ine')
+    matrix, m, d = from_file
     lrs = ConcreteLrs(matrix, m, d)
 
     lrs.augmentWithObjective()

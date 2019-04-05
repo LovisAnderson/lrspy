@@ -66,6 +66,7 @@ def arrangement2():
 
     return attributes
 
+
 @pytest.fixture
 def simplex():
 
@@ -99,4 +100,16 @@ def simplex():
 def from_file():
     p = Path(__file__).parents[1].joinpath('data/arrangement.ine')
     matrix, m, d = reader(str(p))
+    return matrix, m, d
+
+
+@pytest.fixture
+def zero_vertex():
+    matrix = [[mpz(-1), mpz(1), mpz(1)],
+              [mpz(0), mpz(1), mpz(0)],
+              [mpz(0), mpz(0), mpz(1)],
+              [mpz(-1), mpz(2), mpz(0)], ]
+    m = 4
+    d = 3
+
     return matrix, m, d
