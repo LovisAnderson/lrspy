@@ -24,10 +24,10 @@ def test_select_pivot(simplex):
 
 def test_search(from_file):
     lrs = CrissCross(*from_file)
-    lrs.augmentWithObjective()
-    lrs.initDicts()
-    lrs.firstBasis()
-    lrs.setObjective()
+    lrs.augment_matrix_with_objective()
+    lrs.init_dicts()
+    lrs.first_basis()
+    lrs.set_objective()
     lrs.search()
     bases = [[0, 1, 2, 5, 6], [0, 1, 2, 3, 6], [0, 1, 2, 4, 6], [0, 1, 2, 4, 5], [0, 1, 2, 3, 4]]
     assert all(basis in lrs.bases for basis in bases)
@@ -35,12 +35,12 @@ def test_search(from_file):
 
 def test_negative_search(from_file):
     lrs = CrissCross(*from_file)
-    lrs.augmentWithObjective()
+    lrs.augment_matrix_with_objective()
     lrs.matrix[2][0] += 10
-    lrs.printInfo()
-    lrs.initDicts()
-    lrs.firstBasis()
-    lrs.setObjective()
+    lrs.print_info()
+    lrs.init_dicts()
+    lrs.first_basis()
+    lrs.set_objective()
     lrs.search()
 
 
@@ -50,20 +50,20 @@ def test_box_search(from_file):
     boxConstraint2 = [mpz(3), mpz(0), mpz(-1)]
     boxConstraint3 = [mpz(-1), mpz(0), mpz(2)]
     boxConstraint4 = [mpz(3), mpz(-1), mpz(0)]
-    lrs.augmentWithObjective()
-    lrs.initDicts()
-    lrs.addBoxConstraints([boxConstraint1, boxConstraint2, boxConstraint3, boxConstraint4])
-    lrs.firstBasis()
-    lrs.firstBasisWithBox()
-    lrs.setObjective()
+    lrs.augment_matrix_with_objective()
+    lrs.init_dicts()
+    lrs.add_box_constraints([boxConstraint1, boxConstraint2, boxConstraint3, boxConstraint4])
+    lrs.first_basis()
+    lrs.first_basis_with_box()
+    lrs.set_objective()
     lrs.search()
 
 def test_zero_vertex(zero_vertex):
     lrs = CrissCross(*zero_vertex)
-    lrs.augmentWithObjective()
-    lrs.initDicts()
-    lrs.firstBasis()
-    lrs.setObjective()
+    lrs.augment_matrix_with_objective()
+    lrs.init_dicts()
+    lrs.first_basis()
+    lrs.set_objective()
     lrs.search()
     def is_zero(point):
         return all(vi == 0 for vi in point)
