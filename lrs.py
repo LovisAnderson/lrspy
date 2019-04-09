@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 
 class Lrs(ABC):
     def __init__(self, hyperplane_matrix, m, d):
+        self.hyperplanes = hyperplane_matrix
         self.matrix = hyperplane_matrix
         self.nr_hyperplanes = m
         self.B = LrsDict() # Basis
