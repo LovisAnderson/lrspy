@@ -12,24 +12,26 @@ class CrissCross(lrs.Lrs):
             if basis_index <= self.m and self.B[basis_index] == i:
                 if self.matrix[self.B.order[basis_index]][0] < 0:
                     # Bi is primal infeasible
-                    print('B[{}] = {} primal infeasible'.format(basis_index, self.B[basis_index]))
                     for cobasis_index, c in enumerate(self.C):
                         if self.boxed and not self.pivot_stays_in_box(basis_index, cobasis_index):
                             continue
                         if self.matrix[self.B.order[basis_index]][self.C.order[cobasis_index]] > 0:
+                            print('Primal infeasible! pivot i={}, j={}'.format(basis_index,
+                                                                               cobasis_index))
                             return basis_index, cobasis_index
                     raise ValueError
                 basis_index += 1
             elif cobasis_index < self.d and self.C[cobasis_index] == i:
                 if self.matrix[0][self.C.order[cobasis_index]] > 0:
                     # Ci is dual infeasible
-                    print('C[{}] = {} dual infeasible'.format(cobasis_index, self.C[cobasis_index]))
                     for basis_index, b in enumerate(self.B):
                         if b < self.d:
                             continue
                         if self.boxed and not self.pivot_stays_in_box(basis_index, cobasis_index):
                             continue
                         if self.matrix[self.B.order[basis_index]][self.C.order[cobasis_index]] < 0:
+                            print('Dual infeasible! pivot i={}, j={}'.format(basis_index,
+                                                                               cobasis_index))
                             return basis_index, cobasis_index
                     raise ValueError
                 cobasis_index += 1
