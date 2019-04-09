@@ -3,9 +3,14 @@ from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateTimeEdit, 
         QProgressBar, QPushButton, QRadioButton, QScrollBar, QSizePolicy,
         QSlider, QSpinBox, QStyleFactory, QTableWidget, QTabWidget, QTextEdit,
         QVBoxLayout, QWidget, )
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from PyQt5.QtCore import QRect
 from crisscross import CrissCross
 from reader import reader
+from plot import plot_arrangement
 
 
 class WidgetGallery(QDialog):
@@ -22,7 +27,7 @@ class WidgetGallery(QDialog):
 
         mainLayout = QGridLayout()
         mainLayout.addLayout(self.controls, 0, 0, 1, 2)
-        mainLayout.addLayout(self.canvas, 1, 0, 2, 2)
+        mainLayout.addWidget(self.canvas, 1, 0)
         mainLayout.addWidget(self.matrixDisplay, 1, 1)
         mainLayout.addWidget(self.hyperplaneDisplay, 2, 1)
         self.setLayout(mainLayout)
@@ -30,11 +35,15 @@ class WidgetGallery(QDialog):
 
 
     def createCanvas(self, width=300, height=300):
-        layout = QVBoxLayout()
-        layout.setGeometry(QRect(300, 300, width, height))
-        self.canvas = layout
+        # a figure instance to plot on
+        self.figure = plt.figure()
+
+        # this is the Canvas Widget that displays the `figure`
+        # it takes the `figure` instance as a parameter to __init__
+        self.canvas = FigureCanvas(self.figure)
 
     def createHyperplanes(self):
+
         self.hyperplaneDisplay = QGroupBox("Hyperplanes")
         layout = QVBoxLayout()
         self.hyperplaneDisplay.setLayout(layout)
@@ -58,6 +67,16 @@ class WidgetGallery(QDialog):
         layout.addWidget(fileButton)
         self.controls = layout
 
+    def plot(self):
+        self.figure.clear()
+        # create an axis
+        ax = self.figure.add_subplot(111)
+        # plot data
+        plot_arrangement(self.lrs.hyperplanes, ax=ax)
+        # refresh canvas
+        self.canvas.draw()
+
+
     def createMatrix(self):
         self.matrixDisplay = QGroupBox("Matrix")
         layout = QVBoxLayout()
@@ -71,13 +90,11 @@ class WidgetGallery(QDialog):
                                                   options=options)
         if fileName:
             self.lrs = CrissCross(*reader(fileName))
+            self.plot()
 
     def drawHyperplanes(self):
         pass
 
-    def canvasTransform(self, point):
-        x_coordinate = point[0]
-        y_coordinate = point[1]
 
 def computeCoordinate(hyperplane_array, x):
     # hyperplane array [b, a0, a1] corresponds to b + ao*x +a1*y = 0
@@ -86,6 +103,7 @@ def computeCoordinate(hyperplane_array, x):
         return ValueError
     else:
         return (-hyperplane_array[0] - hyperplane_array[1] * x) / hyperplane_array[2]
+
 
 import sys
 app = QApplication(sys.argv)
