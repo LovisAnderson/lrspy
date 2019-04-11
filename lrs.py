@@ -178,7 +178,6 @@ class Lrs(ABC):
                     print('Pivoting back!')
                     self.i, self.j = self.select_pivot()
                     self.pivot()
-
                     self.increment()
                     print('i: {}, j: {}'.format(self.i, self.j))
                     backtrack = False
