@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 
 class Lrs(ABC):
     def __init__(self, hyperplane_matrix, m, d):
+        self.hyperplanes = hyperplane_matrix
         self.matrix = hyperplane_matrix
         self.nr_hyperplanes = m
         self.B = LrsDict() # Basis
@@ -20,16 +21,16 @@ class Lrs(ABC):
         self.j = 0 # Cobasis index in which we pivot
         self.boxed = False # Flag that indicates if we pivot inside a box (given through constraints)
 
-    def setObjective(self):
+    def set_objective(self):
         for i in range(1, self.d):
             self.matrix[0][i] = mpz(-self.det)
 
-    def augmentWithObjective(self):
+    def augment_matrix_with_objective(self):
         objectiveRow = [mpz(1)]*(self.d)
         objectiveRow[0] = mpz(0)
         self.matrix.insert(0, objectiveRow)
 
-    def initBasis(self):
+    def init_basis(self):
         # InitializeBasis
         self.B = LrsDict()
         f = Variable(0)
@@ -45,7 +46,7 @@ class Lrs(ABC):
             self.B.append(b)
         self.B.order = list(range(self.m + 1))
 
-    def initCobasis(self):
+    def init_cobasis(self):
         for i in range(1, self.d):
             c = Variable(i)
             c.box_variable = False
@@ -57,11 +58,11 @@ class Lrs(ABC):
         self.C.append(g)
         self.C.order = list(range(1, self.d)) + [0]
 
-    def initDicts(self):
-        self.initBasis()
-        self.initCobasis()
+    def init_dicts(self):
+        self.init_basis()
+        self.init_cobasis()
 
-    def firstBasis(self):
+    def first_basis(self):
         for k in range(self.d - 1):
             self.j = 0
             self.i = 1
@@ -72,7 +73,7 @@ class Lrs(ABC):
         self.resort_inequalities()
         if not self.boxed:
             self.appendSolution()
-        self.printInfo('After first basis')
+        self.print_info('After first basis')
 
     def resort_inequalities(self):
         # Sorts variables corresponding to inequalities s.t. they basis is 0, ..., m
@@ -83,7 +84,7 @@ class Lrs(ABC):
         for i, c in enumerate(self.C[:-1]):
             self.C[i] = self.C[i].change_variable(self.m + 1 + i)
 
-    def firstBasisWithBox(self):
+    def first_basis_with_box(self):
         while not self.inside_box():
             for i, b in enumerate(self.B):
                 if not b.box_variable:
@@ -100,9 +101,9 @@ class Lrs(ABC):
                 raise ValueError
             self.pivot()
         self.resort_inequalities()
-        self.printInfo('After first basis with bounding box')
+        self.print_info('After first basis with bounding box')
 
-    def addBoxConstraints(self, constraints):
+    def add_box_constraints(self, constraints):
         """
         Dicts have to be initialized before.
         Constraints are of the form a0 + a1x1 + ... + a_d-1 x_d-1 >= 0
@@ -133,14 +134,14 @@ class Lrs(ABC):
             if k == i:
                 if not self.C[j].box_variable: # If a not box variable is pivoted in we do not care about sign
                     continue
-                elif self.computeEntryAfterPivot(self.B.order[k], 0, pivotRow, pivotColumn, pivotElement) < 0:
+                elif self.matrix_entry_after_pivot(self.B.order[k], 0, pivotRow, pivotColumn, pivotElement) < 0:
                     insideBox = False
                     break
             elif b.box_variable:
                 # Determinant sign is changed before matrix update if pivotelement < 0
                 # Therefore we need this multiplier to get True output
                 detMultiplier = 1 if pivotElement > 0 else -1
-                if detMultiplier * self.computeEntryAfterPivot(
+                if detMultiplier * self.matrix_entry_after_pivot(
                     self.B.order[k], 0, pivotRow, pivotColumn, pivotElement
             ) < 0:
                     insideBox = False
@@ -158,7 +159,7 @@ class Lrs(ABC):
         return True
 
     def search(self):
-        self.printInfo('Search start:')
+        self.print_info('Search start:')
         self.i = self.d
         nextbasis = True
         backtrack = False
@@ -194,16 +195,16 @@ class Lrs(ABC):
 
     def appendSolution(self):
         print('Append basis: {}'.format(self.B))
-        print('Vertex: {}'.format(self.getVertex()))
+        print('Vertex: {}'.format(self.get_vertex()))
         self.bases.append(deepcopy(self.B))
-        self.vertices.append(self.getVertex())
-        self.position_vectors.append(self.getPositionVector())
+        self.vertices.append(self.get_vertex())
+        self.position_vectors.append(self.get_position_vector())
 
-    def getVertex(self):
+    def get_vertex(self):
         vertex = tuple(self.matrix[self.B.order[k]][0] / self.det for k in range(1, self.d))
         return vertex
 
-    def getPositionVector(self):
+    def get_position_vector(self):
         position_vector = [0]*self.nr_hyperplanes
         for i, b in enumerate(self.B):
             if b.slack_variable and not b.box_variable:
@@ -221,7 +222,7 @@ class Lrs(ABC):
 
     def reverse(self):
         print('In reverse: i: {}, j:{}'.format(self.i, self.j))
-        possibleReversePivot = self.necessaryConditionForReverse()
+        possibleReversePivot = self.necessary_condition_for_reverse()
         if not possibleReversePivot:
             print('Not a possible reverse pivot!')
             return False
@@ -236,22 +237,22 @@ class Lrs(ABC):
             return False
 
     @abstractmethod
-    def necessaryConditionForReverse(self):
+    def necessary_condition_for_reverse(self):
         pass
 
     def lex_min(self):
         return True
 
-    def printInfo(self, infoString=None):
+    def print_info(self, infoString=None):
         if infoString is not None:
             print(infoString)
         print('Basis: {}'.format(self.B))
         print('Cobasis: {}'.format(self.C))
         print('det: {}'.format(self.det))
         print('matrix: ')
-        self.pretty_print_matrix()
+        self.print_matrix_with_variables()
 
-    def computeEntryAfterPivot(self, i, j, pivotRow, pivotColumn, pivotElement):
+    def matrix_entry_after_pivot(self, i, j, pivotRow, pivotColumn, pivotElement):
         if i == pivotRow:
             if j == pivotColumn:
                 return self.det
@@ -277,16 +278,12 @@ class Lrs(ABC):
         self.det = self.det if pivotElement > 0 else -self.det
 
         self.matrix = [
-            [self.computeEntryAfterPivot(i, j, row, column, pivotElement) for j in range(self.d)]
+            [self.matrix_entry_after_pivot(i, j, row, column, pivotElement) for j in range(self.d)]
             for i in range(self.m +1)
         ]
         self.det = pivotElement if pivotElement > 0 else - pivotElement
         self.update()
-        self.printInfo('After pivot:')
-
-    def sortDictionary(self, dictionary, locations):
-        newDic, newLoc = zip(*sorted(zip(dictionary, locations)))
-        return list(newDic), list(newLoc)
+        self.print_info('After pivot:')
 
     def increment(self):
         if self.i == self.m:
@@ -310,8 +307,18 @@ class Lrs(ABC):
         str += ']'
         print(str)
 
+    def print_matrix_with_variables(self):
+        str = ''
+        for i, b in enumerate(self.B):
+            row = []
+            for j, c in enumerate(self.C):
+                row.append('A[{}][{}]={}, '.format(b, c, self.matrix[self.B.order[i]][self.C.order[j]]))
+            str += '{:<12}  {:<12}  {:<12}'.format(*row)
+            str += '\n'
+        print(str)
+
     @staticmethod
-    def maxIndexSmallerNumber(list, number):
+    def max_index_of_smaller_number(list, number):
         """ Assumes sorted input list"""
         for i, element in enumerate(list):
             if element >= number:

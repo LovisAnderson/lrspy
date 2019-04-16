@@ -22,16 +22,16 @@ def test_augment_with_objective(from_file):
     matrix, m, d = from_file
     lrs = ConcreteLrs(matrix, m, d)
 
-    lrs.augmentWithObjective()
-    lrs.initDicts()
-    lrs.firstBasis()
+    lrs.augment_matrix_with_objective()
+    lrs.init_dicts()
+    lrs.first_basis()
 
 
 def test_position_vector(arrangement2):
     simpleLrs = ConcreteLrs.__new__(ConcreteLrs)
     simpleLrs.set_attributes(arrangement2)
-    simpleLrs.getPositionVector()
-    assert simpleLrs.getPositionVector() == [0, 1, 0, -1]
+    simpleLrs.get_position_vector()
+    assert simpleLrs.get_position_vector() == [0, 1, 0, -1]
 
 
 def test_pivot(arrangement):
@@ -58,9 +58,9 @@ def test_bounding_box(from_file):
     boxConstraint2 = [mpz(3), mpz(0), mpz(-1)]
     boxConstraint3 = [mpz(-1), mpz(0), mpz(2)]
     boxConstraint4 = [mpz(3), mpz(-1), mpz(0)]
-    lrs.augmentWithObjective()
-    lrs.initDicts()
-    lrs.addBoxConstraints([boxConstraint1, boxConstraint2, boxConstraint3, boxConstraint4])
-    lrs.firstBasis()
-    lrs.firstBasisWithBox()
-    lrs.setObjective()
+    lrs.augment_matrix_with_objective()
+    lrs.init_dicts()
+    lrs.add_box_constraints([boxConstraint1, boxConstraint2, boxConstraint3, boxConstraint4])
+    lrs.first_basis()
+    lrs.first_basis_with_box()
+    lrs.set_objective()

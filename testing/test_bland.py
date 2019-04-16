@@ -24,10 +24,10 @@ def test_select_pivot(simplex):
 
 def test_search(from_file):
     lrs = Bland(*from_file)
-    lrs.augmentWithObjective()
-    lrs.initDicts()
-    lrs.firstBasis()
-    lrs.setObjective()
+    lrs.augment_matrix_with_objective()
+    lrs.init_dicts()
+    lrs.first_basis()
+    lrs.set_objective()
     lrs.search()
     bases = [[0, 1, 2, 5, 6], [0, 1, 2, 3, 6], [0, 1, 2, 4, 6], [0, 1, 2, 4, 5], [0, 1, 2, 3, 4]]
     assert all(basis in lrs.bases for basis in bases)

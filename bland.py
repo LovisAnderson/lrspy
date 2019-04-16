@@ -24,7 +24,7 @@ class Bland(lrs.Lrs):
                 i = k + self.d
         return i, j
 
-    def necessaryConditionForReverse(self):
+    def necessary_condition_for_reverse(self):
         if self.matrix[self.B.order[self.i]][self.C.order[self.j]] == 0:
             return False
         return True

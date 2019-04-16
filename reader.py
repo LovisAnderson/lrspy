@@ -5,10 +5,13 @@ from gmpy2 import mpq, mpz
 def reader(path):
     readMatrix = False
     readDimensions = False
+    offset_at_the_end = False
     numberType = NumberType.undefined
     matrix = []
     with open(path) as infile:
         for line in infile.readlines():
+            if line.startswith('flipped representation'):
+                offset_at_the_end = True
             if line.startswith('begin'):
                 readMatrix = True
                 readDimensions = True
@@ -16,11 +19,11 @@ def reader(path):
             elif line.startswith('end'):
                 readMatrix = False
             elif readDimensions:
-                m, d, numberType= parseMatrixMeta(line)
+                m, d, numberType= parse_matrix_meta(line)
                 readDimensions = False
                 continue
             elif readMatrix:
-                matrix.append(parseLine(line, d, numberType))
+                matrix.append(parse_line(line, d, numberType, offset_at_the_end))
     return matrix, m, d
 
 
@@ -31,8 +34,7 @@ def addSlacks(matrix, m):
         row += slack
     return matrix
 
-
-def parseMatrixMeta(line):
+def parse_matrix_meta(line):
     m, d, numberTypeStr = line.split()
     m = int(m)
     d = int(d)
@@ -40,14 +42,19 @@ def parseMatrixMeta(line):
     return m, d, numberType
 
 
-def parseLine(line, dim, numberType):
+def parse_line(line, dim, numberType, offset_at_the_end=False):
     entries = line.split()
+    if offset_at_the_end:
+        entries = [entries[-1]] + entries[:-1]
     if len(entries) != dim:
         print(len(entries))
         raise ValueError('Line has to have {} many entries: {}!'.format(dim, entries))
     if numberType == NumberType.float:
-        raise NotImplementedError
-    if numberType == NumberType.rational:
+        print(entries)
+        scaling = 1e+9
+        matrix_row = [mpz(int(scaling * float(entry))) for entry in entries]
+        print(matrix_row)
+    elif numberType == NumberType.rational:
         matrix_row = []
         for entry in entries:
             splitted = entry.split('/')
@@ -57,8 +64,9 @@ def parseLine(line, dim, numberType):
                 matrix_row.append(mpz(int(splitted[0])))
             else:
                 matrix_row.append(mpq(int(splitted[0]), int(splitted[1])))
-    if numberType == NumberType.integer:
-        matrix_row = [int(a) for a in line]
+    elif numberType == NumberType.integer:
+        matrix_row = [mpz(a) for a in line]
+
     return matrix_row
 
 
@@ -71,6 +79,27 @@ class NumberType(Enum):
     def __str__(self):
         return self.name
 
+
+def gcd(a, b):
+    """Return greatest common divisor using Euclid's Algorithm."""
+    while b:
+        a, b = b, a % b
+    return a
+
+
+def lcm(a, b):
+    """Return lowest common multiple."""
+    return a * b // gcd(a, b)
+
+
+def lcmm(*args):
+    """Return lcm of args."""
+    z = lcm(args[0], args[1])
+    if len(args) == 2:
+        return z
+    for arg in args[2:]:
+        z = lcm(z, arg)
+    return z
 
 def test_parse():
     A, m, d = reader('data/arrangement.ine')
