@@ -46,6 +46,7 @@ class WidgetGallery(QDialog):
         pivotButton.setDefault(True)
 
         searchStepButton = QPushButton("Search Step")
+        self.button.clicked.connect(self.searchButton)
         searchStepButton.setDefault(True)
 
         fileButton = QPushButton("Open File")
@@ -57,6 +58,9 @@ class WidgetGallery(QDialog):
         layout.addWidget(searchStepButton)
         layout.addWidget(fileButton)
         self.controls = layout
+
+    def searchButton(self):
+        self.lrs.search()
 
     def createMatrix(self):
         self.matrixDisplay = QGroupBox("Matrix")
