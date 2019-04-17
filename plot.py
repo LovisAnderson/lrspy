@@ -64,7 +64,7 @@ def circle_out(x, y, s=20, *args, **kwargs):
     ax.scatter(x, y, s, facecolors='none', *args, **kwargs)
 
 
-def plot_arrangement(arrangement_matrix, ax=None, x_limits=(0, 4), y_limits=(0, 4)):
+def plot_arrangement(arrangement_matrix, ax=None, x_limits=(0, 4), y_limits=(0, 4), point=None):
 
     if ax is None:
         show = True
@@ -76,5 +76,7 @@ def plot_arrangement(arrangement_matrix, ax=None, x_limits=(0, 4), y_limits=(0, 
     for hyperplane in arrangement_matrix:
         line = hyperplane[1:] + hyperplane[0:1]
         plotline(line)
+    if point is not None:
+        circle_out(point[0], point[1])
     if show:
         plt.show()

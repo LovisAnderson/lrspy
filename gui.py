@@ -3,32 +3,29 @@ from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateTimeEdit, 
         QProgressBar, QPushButton, QRadioButton, QScrollBar, QSizePolicy,
         QSlider, QSpinBox, QStyleFactory, QTableWidget, QTabWidget, QTextEdit,
         QVBoxLayout, QWidget, )
-from PyQt5.QtCore import QRect,Qt, QVariant,QModelIndex
+from PyQt5.QtCore import QRect, Qt, QVariant,QModelIndex, QAbstractTableModel
 
 import pandas as pd
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from crisscross import CrissCross
-from reader import reader
 from plot import plot_arrangement
 from crisscross import CrissCross
 from reader import reader
+from lrs import SearchStatus
 
 
 class WidgetGallery(QDialog):
     def __init__(self, parent=None):
         super(WidgetGallery, self).__init__(parent)
 
-
+        self.search_status = SearchStatus.NONE
         self.canvasWidth = 300
         self.canvasHeight = 300
         self.createCanvas(width=self.canvasWidth, height=self.canvasHeight)
         self.createControls()
         self.createHyperplanes()
         self.createMatrix()
-
+        self.first_basis_found = False
         mainLayout = QGridLayout()
         mainLayout.addLayout(self.controls, 0, 0, 1, 2)
         mainLayout.addWidget(self.canvas, 1, 0)
@@ -55,20 +52,21 @@ class WidgetGallery(QDialog):
     def createControls(self):
         self.controls = QGroupBox("Controls")
 
-        pivotButton = QPushButton("Pivot")
-        pivotButton.setDefault(True)
+        self.pivotButton = QPushButton("First Basis")
+        self.pivotButton.clicked.connect(self.pivot)
+        self.pivotButton.setDefault(True)
 
-        searchStepButton = QPushButton("Search Step")
-        self.button.clicked.connect(self.searchButton)
-        searchStepButton.setDefault(True)
+        self.searchStepButton = QPushButton("First Basis")
+        self.searchStepButton.clicked.connect(self.searchButton)
+        self.searchStepButton.setDefault(True)
 
         fileButton = QPushButton("Open File")
         fileButton.setDefault(True)
         fileButton.clicked.connect(self.openFile)
 
         layout = QVBoxLayout()
-        layout.addWidget(pivotButton)
-        layout.addWidget(searchStepButton)
+        layout.addWidget(self.pivotButton)
+        layout.addWidget(self.searchStepButton)
         layout.addWidget(fileButton)
         self.controls = layout
 
@@ -76,13 +74,46 @@ class WidgetGallery(QDialog):
         self.figure.clear()
         # create an axis
         ax = self.figure.add_subplot(111)
+
+        if self.first_basis_found:
+            point = self.lrs.get_vertex()
+        else:
+            point = None
         # plot data
-        plot_arrangement(self.lrs.hyperplanes, ax=ax)
+        plot_arrangement(self.lrs.hyperplanes, ax=ax, point=point)
         # refresh canvas
         self.canvas.draw()
 
+    def pivot(self):
+        if not self.first_basis_found:
+            self.first_basis_found = True
+            self.lrs.first_basis()
+            self.plot()
+            self.start_search()
+
+        elif self.search_status != SearchStatus.DONE:
+            self.search_status = self.search.__next__()
+            while self.search_status not in [SearchStatus.NEWBASIS, SearchStatus.BACKTRACKED, SearchStatus.DONE]:
+                self.search_status = self.search.__next__()
+            self.plot()
+
+    def start_search(self):
+        self.lrs.set_objective()
+        self.searchStepButton.setText('Search Step')
+        self.pivotButton.setText('Pivot')
+        self.plot()
+        self.search = self.lrs.search()
+
     def searchButton(self):
-        self.lrs.search()
+        if not self.first_basis_found:
+            self.lrs.first_basis()
+            self.first_basis_found = True
+            self.plot()
+            self.start_search()
+        elif self.search_status != SearchStatus.DONE:
+            self.search_status = self.search.__next__()
+            if self.search_status in [SearchStatus.NEWBASIS, SearchStatus.BACKTRACKED]:
+                self.plot()
 
     def createMatrix(self):
         self.matrixDisplay = QGroupBox("Matrix")
@@ -97,22 +128,21 @@ class WidgetGallery(QDialog):
                                                   options=options)
         if fileName:
             self.lrs = CrissCross(*reader(fileName))
+            self.lrs.augment_matrix_with_objective()
+            self.lrs.init_dicts()
             self.plot()
 
-    def drawHyperplanes(self):
-        pass
 
-
-class PandasModel(QtCore.QAbstractTableModel):
+class PandasModel(QAbstractTableModel):
     def __init__(self, df = pd.DataFrame(), parent=None):
-        QtCore.QAbstractTableModel.__init__(self, parent=parent)
+        QAbstractTableModel.__init__(self, parent=parent)
         self._df = df
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if role != Qt.DisplayRole:
             return QVariant()
 
-        if orientation == QtCore.Qt.Horizontal:
+        if orientation == Qt.Horizontal:
             try:
                 return self._df.columns.tolist()[section]
             except (IndexError, ):
