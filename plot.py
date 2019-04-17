@@ -65,7 +65,7 @@ def circle_out(x, y, s=20, *args, **kwargs):
 
 
 def plot_arrangement(arrangement_matrix, ax=None, x_limits=(0, 4), y_limits=(0, 4), point=None):
-
+    colors = well_distinguishable_colors(len(arrangement_matrix) + 1)
     if ax is None:
         show = True
         ax = plt.gca()
@@ -73,10 +73,16 @@ def plot_arrangement(arrangement_matrix, ax=None, x_limits=(0, 4), y_limits=(0, 
         show = False
     ax.set_xlim(*x_limits)
     ax.set_ylim(*y_limits)
-    for hyperplane in arrangement_matrix:
+    for i, hyperplane in enumerate(arrangement_matrix):
         line = hyperplane[1:] + hyperplane[0:1]
-        plotline(line)
+        plotline(line, color=colors[i])
     if point is not None:
         circle_out(point[0], point[1])
     if show:
         plt.show()
+
+
+def well_distinguishable_colors(number_colors):
+    hsv = plt.get_cmap('hsv')
+    colors = hsv(np.linspace(0, 1.0, number_colors))
+    return colors

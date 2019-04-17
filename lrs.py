@@ -7,7 +7,7 @@ from enum import Enum
 
 class Lrs(ABC):
     def __init__(self, hyperplane_matrix, m, d):
-        self.hyperplanes = hyperplane_matrix
+        self.hyperplanes = deepcopy(hyperplane_matrix)
         self.matrix = hyperplane_matrix
         self.nr_hyperplanes = m
         self.B = LrsDict() # Basis
@@ -74,7 +74,7 @@ class Lrs(ABC):
         self.resort_inequalities()
         if not self.boxed:
             self.appendSolution()
-        self.print_info('After first basis')
+        print(self.info_string('After first basis'))
 
     def resort_inequalities(self):
         # Sorts variables corresponding to inequalities s.t. they basis is 0, ..., m
@@ -102,7 +102,7 @@ class Lrs(ABC):
                 raise ValueError
             self.pivot()
         self.resort_inequalities()
-        self.print_info('After first basis with bounding box')
+        print(self.info_string('After first basis with bounding box'))
 
     def add_box_constraints(self, constraints):
         """
@@ -160,7 +160,7 @@ class Lrs(ABC):
         return True
 
     def search(self):
-        self.print_info('Search start:')
+        print(self.info_string('Search start:'))
         self.i = self.d
         nextbasis = True
         backtrack = False
@@ -248,14 +248,15 @@ class Lrs(ABC):
     def lex_min(self):
         return True
 
-    def print_info(self, infoString=None):
-        if infoString is not None:
-            print(infoString)
-        print('Basis: {}'.format(self.B))
-        print('Cobasis: {}'.format(self.C))
-        print('det: {}'.format(self.det))
-        print('matrix: ')
-        self.print_matrix_with_variables()
+    def info_string(self, infoString=''):
+        str = infoString
+
+        str += 'Basis: {} \n'.format(self.B)
+        str += 'Cobasis: {}\n'.format(self.C)
+        str += 'det: {}\n'.format(self.det)
+        str += 'matrix:\n'
+        str += self.matrix_with_variables_str()
+        return str
 
     def matrix_entry_after_pivot(self, i, j, pivotRow, pivotColumn, pivotElement):
         if i == pivotRow:
@@ -288,7 +289,7 @@ class Lrs(ABC):
         ]
         self.det = pivotElement if pivotElement > 0 else - pivotElement
         self.update()
-        self.print_info('After pivot:')
+        print(self.info_string('After pivot:'))
 
     def increment(self):
         if self.i == self.m:
@@ -312,7 +313,7 @@ class Lrs(ABC):
         str += ']'
         print(str)
 
-    def print_matrix_with_variables(self):
+    def matrix_with_variables_str(self):
         str = ''
         for i, b in enumerate(self.B):
             row = []
@@ -320,7 +321,17 @@ class Lrs(ABC):
                 row.append('A[{}][{}]={}, '.format(b, c, self.matrix[self.B.order[i]][self.C.order[j]]))
             str += '{:<12}  {:<12}  {:<12}'.format(*row)
             str += '\n'
-        print(str)
+        return str
+
+    def hyperplane_variables(self):
+        slack_variables = []
+        for v in self.B + self.C:
+            if not v.slack_variable:
+                continue
+            else:
+                slack_variables.append(v)
+        slack_variables.sort(key=lambda x: x.hyperplane_index)
+        return slack_variables
 
     @staticmethod
     def max_index_of_smaller_number(list, number):
@@ -328,6 +339,15 @@ class Lrs(ABC):
         for i, element in enumerate(list):
             if element >= number:
                 return i - 1
+
+def hyperplane_string(hyperplane):
+    sign1 = '+' if hyperplane[1] > 0 else '-'
+    sign2 = '+' if hyperplane[2] > 0 else '-'
+    hyperplane_str = str(hyperplane[0])
+    hyperplane_str += sign1 + str(abs(hyperplane[1])) + 'x<sub>1</sub>'
+    hyperplane_str += sign2 + str(abs(hyperplane[2])) + 'x<sub>2</sub>'
+    hyperplane_str += '= 0'
+    return hyperplane_str
 
 
 class SearchStatus(Enum):
