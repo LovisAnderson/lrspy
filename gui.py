@@ -11,6 +11,9 @@ from PyQt5.QtCore import QRect
 from crisscross import CrissCross
 from reader import reader
 from plot import plot_arrangement
+from PyQt5.QtCore import QRect
+from crisscross import CrissCross
+from reader import reader
 
 
 class WidgetGallery(QDialog):
@@ -55,6 +58,7 @@ class WidgetGallery(QDialog):
         pivotButton.setDefault(True)
 
         searchStepButton = QPushButton("Search Step")
+        self.button.clicked.connect(self.searchButton)
         searchStepButton.setDefault(True)
 
         fileButton = QPushButton("Open File")
@@ -76,6 +80,8 @@ class WidgetGallery(QDialog):
         # refresh canvas
         self.canvas.draw()
 
+    def searchButton(self):
+        self.lrs.search()
 
     def createMatrix(self):
         self.matrixDisplay = QGroupBox("Matrix")
