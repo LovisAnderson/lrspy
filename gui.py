@@ -23,18 +23,21 @@ class WidgetGallery(QDialog):
         self.search_status = SearchStatus.NONE
         self.create_canvas()
         self.create_controls()
+        self.create_coordinate_controls()
         self.create_hyperplane_display()
-        self.create_matrix_dispay()
         self.create_status_display()
         self.first_basis_found = False
         mainLayout = QGridLayout()
-        mainLayout.addLayout(self.controls, 0, 0, 1, 2)
+        mainLayout.addLayout(self.controls, 0, 0, 1, 3)
         self.display_layout = QVBoxLayout()
         self.display_layout.addWidget(self.canvas)
+        status_layout = QGridLayout()
+        status_layout.addWidget(self.matrixDisplay, 0, 0)
+        status_layout.addWidget(self.status_display, 1, 0)
+        status_layout.addLayout(self.hyperplaneDisplay, 2, 0, 1, 1)
+        mainLayout.addLayout(self.coordinate_controls, 4, 0, 1, 3)
         mainLayout.addLayout(self.display_layout, 1, 0, 3, 1)
-        mainLayout.addWidget(self.matrixDisplay, 1, 1)
-        mainLayout.addLayout(self.hyperplaneDisplay, 2, 1, 2, 1)
-        mainLayout.addWidget(self.status_display, 3, 1)
+        mainLayout.addLayout(status_layout, 1, 1, 3, 1)
         self.setLayout(mainLayout)
         self.setWindowTitle("Lrs")
 
@@ -73,17 +76,76 @@ class WidgetGallery(QDialog):
         layout.addWidget(fileButton)
         self.controls = layout
 
+    def create_coordinate_controls(self):
+        self.coordinate_controls = QGridLayout()
+
+        # min x text field
+        self.min_x_label = QLabel()
+        self.min_x_label.setFont(LabelFont)
+        self.min_x_label.setText('x min:')
+
+        self.min_x_box = QLineEdit(self)
+        self.min_x_box.setText('0')
+
+        # max x text field
+        self.max_x_label = QLabel()
+        self.max_x_label.setFont(LabelFont)
+        self.max_x_label.setText('x max:')
+
+        self.max_x_box = QLineEdit(self)
+        self.max_x_box.setText('10')
+
+        # min y text field
+        self.min_y_label = QLabel()
+        self.min_y_label.setFont(LabelFont)
+        self.min_y_label.setText('y min:')
+
+        self.min_y_box = QLineEdit(self)
+        self.min_y_box.setText('0')
+
+        # max y text field
+        self.max_y_label = QLabel()
+        self.max_y_label.setFont(LabelFont)
+        self.max_y_label.setText('y max:')
+
+        self.max_y_box = QLineEdit(self)
+        self.max_y_box.setText('10')
+
+        # button for updating bounds
+        self.set_coordinates = QPushButton("Set Coordinates")
+        self.set_coordinates.clicked.connect(self.plot)
+        self.set_coordinates.setDefault(True)
+
+        # adding everything
+
+        self.coordinate_controls.addWidget(self.min_x_label, 0, 0)
+        self.coordinate_controls.addWidget(self.min_x_box, 0, 1)
+
+        self.coordinate_controls.addWidget(self.max_x_label, 0, 2)
+        self.coordinate_controls.addWidget(self.max_x_box, 0, 3)
+
+        self.coordinate_controls.addWidget(self.min_y_label, 1, 0)
+        self.coordinate_controls.addWidget(self.min_y_box, 1, 1)
+
+        self.coordinate_controls.addWidget(self.max_y_label, 1, 2)
+        self.coordinate_controls.addWidget(self.max_y_box, 1, 3)
+
+        button_help_layout = QVBoxLayout()
+        button_help_layout.addWidget(self.set_coordinates)
+        self.coordinate_controls.addLayout(button_help_layout, 2, 0, 2, 4)
+
+    def update_display_bounds(self):
+
+        self.plot(min_x=x_min, max_x=x_max, min_y=y_min, max_y=y_max)
+
     def create_hyperplane_display(self):
         self.hyperplaneDisplay = QVBoxLayout()
         self.hyperplaneDisplay.setContentsMargins(0, 0, 0, 0)
 
-    def create_matrix_dispay(self):
-        self.matrixDisplay = QLabel()
-
-        self.matrixDisplay.setFont(LabelFont)
-
     def create_status_display(self):
         self.status_display = QLabel()
+        self.status_display.setFont(LabelFont)
+        self.matrixDisplay = QLabel()
         self.matrixDisplay.setFont(LabelFont)
 
     def clear_layout(self, layout):
@@ -97,12 +159,21 @@ class WidgetGallery(QDialog):
         colors = well_distinguishable_colors(len(self.lrs.hyperplanes) + 1)
 
         def get_label_stylesheet(i):
-            return "QLabel {{ color : rgb({}, {}, {}); }}".format(*[int(c*255) for c in colors[i]])
+            color = 'rgb({}, {}, {})'.format(
+                *[int(c*255) for c in colors[i]]
+            )
+            text_align = 'left'
+            stylesheet = "QLabel {{ color : {}; text-align: {};}}".format(
+                color,
+                text_align
+            )
+            return stylesheet
+
         vars = self.lrs.hyperplane_variables()
 
         for i, hyperplane in enumerate(self.lrs.hyperplanes):
             hyperplane_label = QLabel()
-            hyperplane_label.setAlignment(Qt.AlignCenter)
+            hyperplane_label.setAlignment(Qt.AlignLeft)
             var_text = 'Var: {}; Hyperplane: '.format(vars[i])
             hyperplane_label.setText(var_text + hyperplane_string(hyperplane))
             hyperplane_label.setStyleSheet(
@@ -112,14 +183,28 @@ class WidgetGallery(QDialog):
             self.hyperplaneDisplay.addWidget(hyperplane_label)
         self.hyperplaneDisplay.addStretch(1)
 
+    def write_status(self):
+        status_string = self.search_status.value + '\n'
+        status_string += 'i: {} \n'.format(self.lrs.i)
+        status_string += 'j: {} \n'.format(self.lrs.j)
+        self.status_display.setText(status_string)
+
     def update(self, update_hyperplanes=False):
         self.plot()
         if update_hyperplanes:
             self.write_hyperplanes()
         self.matrixDisplay.setText(self.lrs.info_string())
+        self.write_status()
 
     def plot(self):
+        x_min = int(self.min_x_box.text())
+        x_max = int(self.max_x_box.text())
+
+        y_min = int(self.min_y_box.text())
+        y_max = int(self.max_y_box.text())
+
         self.figure.clear()
+
         # create an axis
         ax = self.figure.add_subplot(111)
 
@@ -128,7 +213,10 @@ class WidgetGallery(QDialog):
         else:
             point = None
         # plot data
-        plot_arrangement(self.lrs.hyperplanes, ax=ax, point=point)
+        plot_arrangement(
+            self.lrs.hyperplanes,
+            ax=ax, point=point, x_limits=(x_min, x_max),  y_limits=(y_min, y_max)
+        )
         # refresh canvas
         self.canvas.draw()
 
@@ -144,13 +232,6 @@ class WidgetGallery(QDialog):
                 self.search_status = self.search.__next__()
             self.update()
 
-    def start_search(self):
-        self.lrs.set_objective()
-        self.search_step_button.setText('Search Step')
-        self.pivot_button.setText('Pivot')
-        self.update(update_hyperplanes=True)
-        self.search = self.lrs.search()
-
     def search_step(self):
         if not self.first_basis_found:
             self.lrs.first_basis()
@@ -161,6 +242,14 @@ class WidgetGallery(QDialog):
             self.search_status = self.search.__next__()
             if self.search_status in [SearchStatus.NEWBASIS, SearchStatus.BACKTRACKED]:
                 self.update()
+            self.write_status()
+
+    def start_search(self):
+        self.lrs.set_objective()
+        self.search_step_button.setText('Search Step')
+        self.pivot_button.setText('Pivot')
+        self.update(update_hyperplanes=True)
+        self.search = self.lrs.search()
 
     def open_file(self):
         options = QFileDialog.Options()
@@ -169,6 +258,7 @@ class WidgetGallery(QDialog):
                                                   "All Files (*);;Ine Files (*.ine)",
                                                   options=options)
         if fileName:
+            self.search_status = SearchStatus.NONE
             self.lrs = CrissCross(*reader(fileName))
             self.lrs.augment_matrix_with_objective()
             self.lrs.init_dicts()
