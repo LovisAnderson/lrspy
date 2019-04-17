@@ -2,6 +2,7 @@ from gmpy2 import mpz, divexact
 from lrs_datastructures import LrsDict, Variable
 from copy import deepcopy
 from abc import ABC, abstractmethod
+from enum import Enum
 
 
 class Lrs(ABC):
@@ -173,6 +174,7 @@ class Lrs(ABC):
                     print('vertices', self.vertices)
                     print('position vectors:', self.position_vectors)
                     nextbasis = False
+                    yield SearchStatus.DONE
                     break
                 if backtrack:
                     print('Pivoting back!')
@@ -181,14 +183,18 @@ class Lrs(ABC):
                     self.increment()
                     print('i: {}, j: {}'.format(self.i, self.j))
                     backtrack = False
+                    yield SearchStatus.BACKTRACKED
                 else:
                     while self.j < self.d - 1 and not self.reverse():
                         self.increment()
+                        yield SearchStatus.INCREMENTED
                     if self.j == self.d - 1:
                         backtrack = True
                     else:
                         if self.lex_min():
                             self.appendSolution()
+                        yield SearchStatus.NEWBASIS
+
                         print('start tree search from new root')
                         break
 
@@ -322,3 +328,11 @@ class Lrs(ABC):
         for i, element in enumerate(list):
             if element >= number:
                 return i - 1
+
+
+class SearchStatus(Enum):
+    NONE = "no status"
+    BACKTRACKED = "backtracked"
+    DONE = "all vertices found"
+    INCREMENTED = "incremented"
+    NEWBASIS = "new basis found"
