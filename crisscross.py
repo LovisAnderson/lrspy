@@ -51,12 +51,12 @@ class CrissCross(lrs.Lrs):
                         for k in range(0, self.max_index_of_smaller_number(self.C, self.B[self.i]) + 1)
                     )
             ):
-                return  True
+                return True
         if self.matrix[0][self.C.order[self.j]] < 0:
             if (self.matrix[self.B.order[self.i]][self.C.order[self.j]] < 0 and
                 all(
                     self.matrix[self.B.order[k]][self.C.order[self.j]] <= 0
-                    for k in range(1, self.max_index_of_smaller_number(self.C, self.C[self.j]) + 1)
+                    for k in range(self.d, self.max_index_of_smaller_number(self.C, self.C[self.j]) + 1)
                 )
             ):
                 return True
