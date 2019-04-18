@@ -1,9 +1,6 @@
-from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateTimeEdit, QFileDialog,
-        QDial, QDialog, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
-        QProgressBar, QPushButton, QRadioButton, QScrollBar, QSizePolicy,
-        QSlider, QSpinBox, QStyleFactory, QTableWidget, QTabWidget, QTextEdit,
-        QVBoxLayout, QWidget, QSpacerItem, QSizePolicy)
-from PyQt5.QtCore import QRect, Qt, QVariant,QModelIndex, QAbstractTableModel
+from PyQt5.QtWidgets import (QApplication, QFileDialog, QDialog, QGridLayout, QLabel, QLineEdit,
+        QPushButton, QVBoxLayout, QSpacerItem, QSizePolicy)
+from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
@@ -14,7 +11,6 @@ from lrs import SearchStatus, hyperplane_string
 
 LabelFont = QtGui.QFont('SansSerif', 12)
 
-
 class WidgetGallery(QDialog):
     def __init__(self, parent=None):
         super(WidgetGallery, self).__init__(parent)
@@ -24,13 +20,7 @@ class WidgetGallery(QDialog):
         self.first_basis_found = False
         self.search_status = SearchStatus.NONE
 
-        self.create_canvas_layout()
-        self.create_controls()
-        self.create_hyperplane_display()
-        self.create_status_display()
-        self.create_status_layout()
-
-        self.create_main_layout()
+        self.create_layout()
 
         self.setLayout(self.mainLayout)
 
@@ -42,6 +32,15 @@ class WidgetGallery(QDialog):
         p = self.palette()
         p.setColor(self.backgroundRole(), color)
         self.setPalette(p)
+
+    def create_layout(self):
+        self.create_canvas_layout()
+        self.create_controls()
+        self.create_hyperplane_display()
+        self.create_status_display()
+        self.create_status_layout()
+
+        self.create_main_layout()
 
     def create_canvas_layout(self):
         # a figure instance to plot on
@@ -274,8 +273,6 @@ class WidgetGallery(QDialog):
             self.lrs.augment_matrix_with_objective()
             self.lrs.init_dicts()
             self.update(update_hyperplanes=True)
-
-
 
 import sys
 app = QApplication(sys.argv)
