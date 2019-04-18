@@ -55,9 +55,9 @@ class WidgetGallery(QDialog):
 
     def create_controls(self):
 
-        self.pivot_button = QPushButton("First Basis")
-        self.pivot_button.clicked.connect(self.pivot_step)
-        self.pivot_button.setDefault(True)
+        self.next_pivot_button = QPushButton("First Basis")
+        self.next_pivot_button.clicked.connect(self.next_pivot)
+        self.next_pivot_button.setDefault(True)
 
         self.search_step_button = QPushButton("First Basis")
         self.search_step_button.clicked.connect(self.search_step)
@@ -68,7 +68,7 @@ class WidgetGallery(QDialog):
         fileButton.clicked.connect(self.open_file)
 
         layout = QGridLayout()
-        layout.addWidget(self.pivot_button, 0, 0)
+        layout.addWidget(self.next_pivot_button, 0, 0)
         layout.addWidget(self.search_step_button, 1, 0)
         layout.addWidget(fileButton, 2, 0)
 
@@ -143,8 +143,24 @@ class WidgetGallery(QDialog):
         self.status_layout = QGridLayout()
         self.status_layout.addItem(QSpacerItem(0, 50, QSizePolicy.Minimum, QSizePolicy.Minimum), 0, 0)
         self.status_layout.addWidget(self.matrixDisplay, 1, 0)
+
         self.status_layout.addWidget(self.status_display, 2, 0)
-        self.status_layout.addLayout(self.hyperplaneDisplay, 3, 0, 1, 1)
+
+        def pivotLayout():
+            pivotHelperLayout = QGridLayout()
+            pivotHelperLayout.addWidget(self.pivot_label_i, 0, 0)
+            pivotHelperLayout.addWidget(self.pivot_box_i, 0, 1)
+
+            pivotHelperLayout.addWidget(self.pivot_label_j, 1, 0)
+            pivotHelperLayout.addWidget(self.pivot_box_j, 1, 1)
+
+            buttonHelperLayout = QVBoxLayout()
+            buttonHelperLayout.addWidget(self.pivot_button)
+            pivotHelperLayout.addLayout(buttonHelperLayout, 0, 2, 2, 1)
+            return pivotHelperLayout
+
+        self.status_layout.addLayout(pivotLayout(), 3, 0, 1, 1)
+        self.status_layout.addLayout(self.hyperplaneDisplay, 4, 0, 1, 1)
 
     def create_hyperplane_display(self):
         self.hyperplaneDisplay = QVBoxLayout()
@@ -153,9 +169,30 @@ class WidgetGallery(QDialog):
     def create_status_display(self):
         self.status_display = QLabel()
         self.status_display.setFont(LabelFont)
+
+        self.pivot_label_i = QLabel()
+        self.pivot_label_i.setText('i:')
+        self.pivot_label_i.setFont(LabelFont)
+        self.pivot_box_i = QLineEdit(self)
+
+        self.pivot_label_j = QLabel()
+        self.pivot_label_j.setText('j:')
+        self.pivot_label_j.setFont(LabelFont)
+        self.pivot_box_j = QLineEdit(self)
+
+        self.pivot_button =  QPushButton("Pivot")
+        self.pivot_button.clicked.connect(self.pivot)
+        self.pivot_button.setDefault(True)
+
         self.matrixDisplay = QLabel()
         self.matrixDisplay.setFont(LabelFont)
         self.matrixDisplay.setAlignment(Qt.AlignVCenter)
+
+    def pivot(self):
+        self.lrs.i = int(self.pivot_box_i.text())
+        self.lrs.j = int(self.pivot_box_j.text())
+        self.lrs.pivot()
+        self.update()
 
     def clear_layout(self, layout):
         while layout.count():
@@ -194,9 +231,11 @@ class WidgetGallery(QDialog):
 
     def write_status(self):
         status_string = 'Search Status: {} \n'.format(self.search_status.value)
-        status_string += 'i: {} \n'.format(self.lrs.i)
-        status_string += 'j: {} \n'.format(self.lrs.j)
+        #status_string += 'i: {} \n'.format(self.lrs.i)
+        #status_string += 'j: {} \n'.format(self.lrs.j)
         self.status_display.setText(status_string)
+        self.pivot_box_i.setText(str(self.lrs.i))
+        self.pivot_box_j.setText(str(self.lrs.j))
 
     def update(self, update_hyperplanes=False):
         self.plot()
@@ -229,7 +268,7 @@ class WidgetGallery(QDialog):
         # refresh canvas
         self.canvas.draw()
 
-    def pivot_step(self):
+    def next_pivot(self):
         if not self.first_basis_found:
             self.first_basis_found = True
             self.lrs.first_basis()
@@ -256,7 +295,7 @@ class WidgetGallery(QDialog):
     def start_search(self):
         self.lrs.set_objective()
         self.search_step_button.setText('Search Step')
-        self.pivot_button.setText('Pivot')
+        self.next_pivot_button.setText('Next Pivot')
         self.update(update_hyperplanes=True)
         self.search = self.lrs.search()
 
