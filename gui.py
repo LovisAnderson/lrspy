@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateTimeEdit, 
         QDial, QDialog, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
         QProgressBar, QPushButton, QRadioButton, QScrollBar, QSizePolicy,
         QSlider, QSpinBox, QStyleFactory, QTableWidget, QTabWidget, QTextEdit,
-        QVBoxLayout, QWidget, )
+        QVBoxLayout, QWidget, QSpacerItem, QSizePolicy)
 from PyQt5.QtCore import QRect, Qt, QVariant,QModelIndex, QAbstractTableModel
 from PyQt5 import QtGui
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -20,25 +20,20 @@ class WidgetGallery(QDialog):
         super(WidgetGallery, self).__init__(parent)
 
         self.set_background_color()
+
+        self.first_basis_found = False
         self.search_status = SearchStatus.NONE
-        self.create_canvas()
+
+        self.create_canvas_layout()
         self.create_controls()
-        self.create_coordinate_controls()
         self.create_hyperplane_display()
         self.create_status_display()
-        self.first_basis_found = False
-        mainLayout = QGridLayout()
-        mainLayout.addLayout(self.controls, 0, 0, 1, 3)
-        self.display_layout = QVBoxLayout()
-        self.display_layout.addWidget(self.canvas)
-        status_layout = QGridLayout()
-        status_layout.addWidget(self.matrixDisplay, 0, 0)
-        status_layout.addWidget(self.status_display, 1, 0)
-        status_layout.addLayout(self.hyperplaneDisplay, 2, 0, 1, 1)
-        mainLayout.addLayout(self.coordinate_controls, 4, 0, 1, 3)
-        mainLayout.addLayout(self.display_layout, 1, 0, 3, 1)
-        mainLayout.addLayout(status_layout, 1, 1, 3, 1)
-        self.setLayout(mainLayout)
+        self.create_status_layout()
+
+        self.create_main_layout()
+
+        self.setLayout(self.mainLayout)
+
         self.setWindowTitle("Lrs")
 
     def set_background_color(self, color=Qt.white):
@@ -48,13 +43,16 @@ class WidgetGallery(QDialog):
         p.setColor(self.backgroundRole(), color)
         self.setPalette(p)
 
-    def create_canvas(self):
+    def create_canvas_layout(self):
         # a figure instance to plot on
         self.figure = plt.figure()
 
         # this is the Canvas Widget that displays the `figure`
         # it takes the `figure` instance as a parameter to __init__
         self.canvas = FigureCanvas(self.figure)
+
+        self.canvas_layout = QVBoxLayout()
+        self.canvas_layout.addWidget(self.canvas)
 
     def create_controls(self):
 
@@ -70,43 +68,44 @@ class WidgetGallery(QDialog):
         fileButton.setDefault(True)
         fileButton.clicked.connect(self.open_file)
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.pivot_button)
-        layout.addWidget(self.search_step_button)
-        layout.addWidget(fileButton)
+        layout = QGridLayout()
+        layout.addWidget(self.pivot_button, 0, 0)
+        layout.addWidget(self.search_step_button, 1, 0)
+        layout.addWidget(fileButton, 2, 0)
+
         self.controls = layout
 
     def create_coordinate_controls(self):
-        self.coordinate_controls = QGridLayout()
+        coordinate_controls = QGridLayout()
 
         # min x text field
-        self.min_x_label = QLabel()
-        self.min_x_label.setFont(LabelFont)
-        self.min_x_label.setText('x min:')
+        min_x_label = QLabel()
+        min_x_label.setFont(LabelFont)
+        min_x_label.setText('x min:')
 
         self.min_x_box = QLineEdit(self)
         self.min_x_box.setText('0')
 
         # max x text field
-        self.max_x_label = QLabel()
-        self.max_x_label.setFont(LabelFont)
-        self.max_x_label.setText('x max:')
+        max_x_label = QLabel()
+        max_x_label.setFont(LabelFont)
+        max_x_label.setText('x max:')
 
         self.max_x_box = QLineEdit(self)
         self.max_x_box.setText('10')
 
         # min y text field
-        self.min_y_label = QLabel()
-        self.min_y_label.setFont(LabelFont)
-        self.min_y_label.setText('y min:')
+        min_y_label = QLabel()
+        min_y_label.setFont(LabelFont)
+        min_y_label.setText('y min:')
 
         self.min_y_box = QLineEdit(self)
         self.min_y_box.setText('0')
 
         # max y text field
-        self.max_y_label = QLabel()
-        self.max_y_label.setFont(LabelFont)
-        self.max_y_label.setText('y max:')
+        max_y_label = QLabel()
+        max_y_label.setFont(LabelFont)
+        max_y_label.setText('y max:')
 
         self.max_y_box = QLineEdit(self)
         self.max_y_box.setText('10')
@@ -118,25 +117,35 @@ class WidgetGallery(QDialog):
 
         # adding everything
 
-        self.coordinate_controls.addWidget(self.min_x_label, 0, 0)
-        self.coordinate_controls.addWidget(self.min_x_box, 0, 1)
+        coordinate_controls.addWidget(min_x_label, 0, 0)
+        coordinate_controls.addWidget(self.min_x_box, 0, 1)
 
-        self.coordinate_controls.addWidget(self.max_x_label, 0, 2)
-        self.coordinate_controls.addWidget(self.max_x_box, 0, 3)
+        coordinate_controls.addWidget(max_x_label, 0, 2)
+        coordinate_controls.addWidget(self.max_x_box, 0, 3)
 
-        self.coordinate_controls.addWidget(self.min_y_label, 1, 0)
-        self.coordinate_controls.addWidget(self.min_y_box, 1, 1)
+        coordinate_controls.addWidget(min_y_label, 1, 0)
+        coordinate_controls.addWidget(self.min_y_box, 1, 1)
 
-        self.coordinate_controls.addWidget(self.max_y_label, 1, 2)
-        self.coordinate_controls.addWidget(self.max_y_box, 1, 3)
+        coordinate_controls.addWidget(max_y_label, 1, 2)
+        coordinate_controls.addWidget(self.max_y_box, 1, 3)
 
         button_help_layout = QVBoxLayout()
         button_help_layout.addWidget(self.set_coordinates)
-        self.coordinate_controls.addLayout(button_help_layout, 2, 0, 2, 4)
+        coordinate_controls.addLayout(button_help_layout, 2, 0, 2, 4)
+        self.mainLayout.addLayout(coordinate_controls, 0, 1, 1, 1)
 
-    def update_display_bounds(self):
+    def create_main_layout(self):
+        self.mainLayout = QGridLayout()
+        self.mainLayout.addLayout(self.controls, 0, 0, 1, 1)
+        self.mainLayout.addLayout(self.canvas_layout, 1, 0, 3, 1)
+        self.mainLayout.addLayout(self.status_layout, 1, 1, 3, 1)
 
-        self.plot(min_x=x_min, max_x=x_max, min_y=y_min, max_y=y_max)
+    def create_status_layout(self):
+        self.status_layout = QGridLayout()
+        self.status_layout.addItem(QSpacerItem(0, 50, QSizePolicy.Minimum, QSizePolicy.Minimum), 0, 0)
+        self.status_layout.addWidget(self.matrixDisplay, 1, 0)
+        self.status_layout.addWidget(self.status_display, 2, 0)
+        self.status_layout.addLayout(self.hyperplaneDisplay, 3, 0, 1, 1)
 
     def create_hyperplane_display(self):
         self.hyperplaneDisplay = QVBoxLayout()
@@ -147,6 +156,7 @@ class WidgetGallery(QDialog):
         self.status_display.setFont(LabelFont)
         self.matrixDisplay = QLabel()
         self.matrixDisplay.setFont(LabelFont)
+        self.matrixDisplay.setAlignment(Qt.AlignVCenter)
 
     def clear_layout(self, layout):
         while layout.count():
@@ -184,7 +194,7 @@ class WidgetGallery(QDialog):
         self.hyperplaneDisplay.addStretch(1)
 
     def write_status(self):
-        status_string = self.search_status.value + '\n'
+        status_string = 'Search Status: {} \n'.format(self.search_status.value)
         status_string += 'i: {} \n'.format(self.lrs.i)
         status_string += 'j: {} \n'.format(self.lrs.j)
         self.status_display.setText(status_string)
@@ -258,11 +268,13 @@ class WidgetGallery(QDialog):
                                                   "All Files (*);;Ine Files (*.ine)",
                                                   options=options)
         if fileName:
+            self.create_coordinate_controls()
             self.search_status = SearchStatus.NONE
             self.lrs = CrissCross(*reader(fileName))
             self.lrs.augment_matrix_with_objective()
             self.lrs.init_dicts()
             self.update(update_hyperplanes=True)
+
 
 
 import sys
