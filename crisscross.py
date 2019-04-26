@@ -12,7 +12,7 @@ class CrissCross(lrs.Lrs):
             if basis_index <= self.m and self.B[basis_index] == i:
                 if self.matrix[self.B.order[basis_index]][0] < 0:
                     # Bi is primal infeasible
-                    for cobasis_index, c in enumerate(self.C):
+                    for cobasis_index, c in enumerate(self.C[:-1]):
                         if self.boxed and not self.pivot_stays_in_box(basis_index, cobasis_index):
                             continue
                         if self.matrix[self.B.order[basis_index]][self.C.order[cobasis_index]] > 0:

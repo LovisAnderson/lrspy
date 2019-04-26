@@ -28,7 +28,6 @@ def test_search(from_file):
     lrs.augment_matrix_with_objective()
     lrs.init_dicts()
     lrs.first_basis()
-    lrs.set_objective()
     search = lrs.search()
     status = SearchStatus.NONE
     while status != SearchStatus.DONE:
@@ -44,8 +43,10 @@ def test_negative_search(from_file):
     lrs.info_string()
     lrs.init_dicts()
     lrs.first_basis()
-    lrs.set_objective()
-    lrs.search()
+    search = lrs.search()
+    status = SearchStatus.NONE
+    while status != SearchStatus.DONE:
+        status = search.__next__()
 
 
 def test_box_search(from_file):
@@ -58,17 +59,31 @@ def test_box_search(from_file):
     lrs.init_dicts()
     lrs.add_box_constraints([boxConstraint1, boxConstraint2, boxConstraint3, boxConstraint4])
     lrs.first_basis()
-    lrs.first_basis_with_box()
-    lrs.set_objective()
-    lrs.search()
+    search = lrs.search()
+    status = SearchStatus.NONE
+    while status != SearchStatus.DONE:
+        status = search.__next__()
 
 def test_zero_vertex(zero_vertex):
     lrs = CrissCross(*zero_vertex)
     lrs.augment_matrix_with_objective()
     lrs.init_dicts()
     lrs.first_basis()
-    lrs.set_objective()
-    lrs.search()
+    search = lrs.search()
+    status = SearchStatus.NONE
+    while status != SearchStatus.DONE:
+        status = search.__next__()
     def is_zero(point):
         return all(vi == 0 for vi in point)
     assert any(is_zero(v) for v in lrs.vertices)
+
+
+def test_large_instance(nine_overlap):
+    lrs = CrissCross(*nine_overlap)
+    lrs.augment_matrix_with_objective()
+    lrs.init_dicts()
+    lrs.first_basis()
+    search = lrs.search()
+    status = SearchStatus.NONE
+    while status != SearchStatus.DONE:
+        status = search.__next__()

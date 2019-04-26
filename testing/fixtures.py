@@ -113,3 +113,10 @@ def zero_vertex():
     d = 3
 
     return matrix, m, d
+
+
+@pytest.fixture
+def nine_overlap():
+    p = Path(__file__).parents[1].joinpath('data/nine_overlap.ine')
+    matrix, m, d = reader(str(p))
+    return matrix, m, d

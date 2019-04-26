@@ -24,7 +24,7 @@ def test_augment_with_objective(from_file):
 
     lrs.augment_matrix_with_objective()
     lrs.init_dicts()
-    lrs.first_basis()
+    lrs.variables_into_basis()
 
 
 def test_position_vector(arrangement2):
@@ -61,6 +61,6 @@ def test_bounding_box(from_file):
     lrs.augment_matrix_with_objective()
     lrs.init_dicts()
     lrs.add_box_constraints([boxConstraint1, boxConstraint2, boxConstraint3, boxConstraint4])
-    lrs.first_basis()
-    lrs.first_basis_with_box()
+    lrs.variables_into_basis()
+    lrs.move_into_box()
     lrs.set_objective()

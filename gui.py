@@ -18,6 +18,7 @@ class WidgetGallery(QDialog):
         self.set_background_color()
 
         self.first_basis_found = False
+        self.lrs = None
         self.search_status = SearchStatus.NONE
 
         self.create_layout()
@@ -55,21 +56,25 @@ class WidgetGallery(QDialog):
 
     def create_controls(self):
 
-        self.next_pivot_button = QPushButton("First Basis")
+        self.next_pivot_button = QPushButton("Next Pivot")
         self.next_pivot_button.clicked.connect(self.next_pivot)
         self.next_pivot_button.setDefault(True)
 
-        self.search_step_button = QPushButton("First Basis")
+        self.search_step_button = QPushButton("Search Step")
         self.search_step_button.clicked.connect(self.search_step)
         self.search_step_button.setDefault(True)
+
+        self.first_basis_button = QPushButton("First Basis")
+        self.first_basis_button.setDisabled(True)
+        self.first_basis_button.clicked.connect(self.first_basis)
+        self.first_basis_button.setDefault(True)
 
         fileButton = QPushButton("Open File")
         fileButton.setDefault(True)
         fileButton.clicked.connect(self.open_file)
 
         layout = QGridLayout()
-        layout.addWidget(self.next_pivot_button, 0, 0)
-        layout.addWidget(self.search_step_button, 1, 0)
+        layout.addWidget(self.first_basis_button, 1, 0)
         layout.addWidget(fileButton, 2, 0)
 
         self.controls = layout
@@ -154,9 +159,11 @@ class WidgetGallery(QDialog):
             pivotHelperLayout.addWidget(self.pivot_label_j, 1, 0)
             pivotHelperLayout.addWidget(self.pivot_box_j, 1, 1)
 
-            buttonHelperLayout = QVBoxLayout()
-            buttonHelperLayout.addWidget(self.pivot_button)
-            pivotHelperLayout.addLayout(buttonHelperLayout, 0, 2, 2, 1)
+            # buttonHelperLayout = QVBoxLayout()
+            # buttonHelperLayout.addWidget(self.pivot_button)
+            # pivotHelperLayout.addLayout(buttonHelperLayout, 0, 2, 2, 1)
+            pivotHelperLayout.addWidget(self.pivot_button, 1, 2)
+            pivotHelperLayout.addWidget(self.select_pivot_button, 0, 2)
             return pivotHelperLayout
 
         self.status_layout.addLayout(pivotLayout(), 3, 0, 1, 1)
@@ -180,9 +187,13 @@ class WidgetGallery(QDialog):
         self.pivot_label_j.setFont(LabelFont)
         self.pivot_box_j = QLineEdit(self)
 
-        self.pivot_button =  QPushButton("Pivot")
+        self.pivot_button = QPushButton("Pivot")
         self.pivot_button.clicked.connect(self.pivot)
         self.pivot_button.setDefault(True)
+
+        self.select_pivot_button = QPushButton("Select Pivot")
+        self.select_pivot_button.clicked.connect(self.select_pivot)
+        self.select_pivot_button.setDefault(True)
 
         self.matrixDisplay = QLabel()
         self.matrixDisplay.setFont(LabelFont)
@@ -193,6 +204,11 @@ class WidgetGallery(QDialog):
         self.lrs.j = int(self.pivot_box_j.text())
         self.lrs.pivot()
         self.update()
+
+    def select_pivot(self):
+        i, j = self.lrs.select_pivot()
+        self.pivot_box_i.setText(str(i))
+        self.pivot_box_j.setText(str(j))
 
     def clear_layout(self, layout):
         while layout.count():
@@ -231,8 +247,6 @@ class WidgetGallery(QDialog):
 
     def write_status(self):
         status_string = 'Search Status: {} \n'.format(self.search_status.value)
-        #status_string += 'i: {} \n'.format(self.lrs.i)
-        #status_string += 'j: {} \n'.format(self.lrs.j)
         self.status_display.setText(status_string)
         self.pivot_box_i.setText(str(self.lrs.i))
         self.pivot_box_j.setText(str(self.lrs.j))
@@ -269,33 +283,36 @@ class WidgetGallery(QDialog):
         self.canvas.draw()
 
     def next_pivot(self):
-        if not self.first_basis_found:
-            self.first_basis_found = True
-            self.lrs.first_basis()
-            self.start_search()
 
-        elif self.search_status != SearchStatus.DONE:
+        if self.search_status != SearchStatus.DONE:
             self.search_status = self.search.__next__()
             while self.search_status not in [SearchStatus.NEWBASIS, SearchStatus.BACKTRACKED, SearchStatus.DONE]:
                 self.search_status = self.search.__next__()
             self.update()
 
+    def reset_controls(self):
+        self.controls.addWidget(self.first_basis_button, 1, 0)
+        self.next_pivot_button.setParent(None)
+        self.search_step_button.setParent(None)
+
     def search_step(self):
-        if not self.first_basis_found:
-            self.lrs.first_basis()
-            self.first_basis_found = True
-            self.plot()
-            self.start_search()
-        elif self.search_status != SearchStatus.DONE:
+        if self.search_status != SearchStatus.DONE:
             self.search_status = self.search.__next__()
             if self.search_status in [SearchStatus.NEWBASIS, SearchStatus.BACKTRACKED]:
                 self.update()
             self.write_status()
 
+    def first_basis(self):
+        self.lrs.first_basis()
+        self.first_basis_found = True
+        self.update(update_hyperplanes=True)
+        self.first_basis_button.setParent(None)
+        self.controls.addWidget(self.next_pivot_button, 0, 0)
+        self.controls.addWidget(self.search_step_button, 1, 0)
+        self.start_search()
+
     def start_search(self):
         self.lrs.set_objective()
-        self.search_step_button.setText('Search Step')
-        self.next_pivot_button.setText('Next Pivot')
         self.update(update_hyperplanes=True)
         self.search = self.lrs.search()
 
@@ -306,11 +323,16 @@ class WidgetGallery(QDialog):
                                                   "All Files (*);;Ine Files (*.ine)",
                                                   options=options)
         if fileName:
-            self.create_coordinate_controls()
+            if self.lrs is not None:
+                self.reset_controls()
+                self.first_basis_found = False
+            else:
+                self.create_coordinate_controls()
             self.search_status = SearchStatus.NONE
             self.lrs = CrissCross(*reader(fileName))
             self.lrs.augment_matrix_with_objective()
             self.lrs.init_dicts()
+            self.first_basis_button.setDisabled(False)
             self.update(update_hyperplanes=True)
 
 import sys

@@ -51,8 +51,7 @@ def parse_line(line, dim, numberType, offset_at_the_end=False):
         raise ValueError('Line has to have {} many entries: {}!'.format(dim, entries))
     if numberType == NumberType.float:
         print(entries)
-        scaling = 1e+9
-        matrix_row = [mpz(int(scaling * float(entry))) for entry in entries]
+        matrix_row = [upscaled_mpz_from_float(float(entry)) for entry in entries]
         print(matrix_row)
     elif numberType == NumberType.rational:
         matrix_row = []
@@ -69,6 +68,8 @@ def parse_line(line, dim, numberType, offset_at_the_end=False):
 
     return matrix_row
 
+def upscaled_mpz_from_float(entry, scaling=1e+7):
+    return mpz(entry*scaling)
 
 class NumberType(Enum):
     undefined = 0

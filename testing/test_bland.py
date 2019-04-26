@@ -28,7 +28,6 @@ def test_search(from_file):
     lrs.augment_matrix_with_objective()
     lrs.init_dicts()
     lrs.first_basis()
-    lrs.set_objective()
     search = lrs.search()
     status = SearchStatus.NONE
     while status != SearchStatus.DONE:

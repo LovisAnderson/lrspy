@@ -32,7 +32,6 @@ class Lrs(ABC):
         self.matrix.insert(0, objectiveRow)
 
     def init_basis(self):
-        # InitializeBasis
         self.B = LrsDict()
         f = Variable(0)
         f.basis_index = 0
@@ -63,7 +62,7 @@ class Lrs(ABC):
         self.init_basis()
         self.init_cobasis()
 
-    def first_basis(self):
+    def variables_into_basis(self):
         for k in range(self.d - 1):
             self.j = 0
             self.i = 1
@@ -71,10 +70,17 @@ class Lrs(ABC):
                    self.matrix[self.B.order[self.i]][self.C.order[self.j]] == 0):
                 self.i += 1
             self.pivot()
+        print(self.info_string('Variables moved into basis.'))
+
+    def first_basis(self):
+        self.variables_into_basis()
+        self.set_objective()
+        if self.boxed:
+            self.resort_inequalities() # todo necessary?
+            self.move_into_box()
+        self.go_to_root()
         self.resort_inequalities()
-        if not self.boxed:
-            self.appendSolution()
-        print(self.info_string('After first basis'))
+        self.appendSolution()
 
     def resort_inequalities(self):
         # Sorts variables corresponding to inequalities s.t. they basis is 0, ..., m
@@ -85,7 +91,14 @@ class Lrs(ABC):
         for i, c in enumerate(self.C[:-1]):
             self.C[i] = self.C[i].change_variable(self.m + 1 + i)
 
-    def first_basis_with_box(self):
+    def go_to_root(self):
+        self.i, self.j = self.select_pivot()
+        while self.i != 0 or self.j != 0:
+            self.pivot()
+            self.i, self.j = self.select_pivot()
+
+    def move_into_box(self):
+
         while not self.inside_box():
             for i, b in enumerate(self.B):
                 if not b.box_variable:
@@ -101,7 +114,6 @@ class Lrs(ABC):
             if self.j == self.d:
                 raise ValueError
             self.pivot()
-        self.resort_inequalities()
         print(self.info_string('After first basis with bounding box'))
 
     def add_box_constraints(self, constraints):
