@@ -27,13 +27,6 @@ def reader(path):
     return matrix, m, d
 
 
-def addSlacks(matrix, m):
-    for i, row in enumerate(matrix):
-        slack = [mpq(0)]*m
-        slack[i] = mpq(1)
-        row += slack
-    return matrix
-
 def parse_matrix_meta(line):
     m, d, numberTypeStr = line.split()
     m = int(m)
@@ -113,10 +106,4 @@ def test_parse():
         [3, -2, 0]
         ]
     A1 = [[mpq(a) for a in ai] for ai in A1]
-    assert A == A1
-    A = addSlacks(A, m)
-    A1[0] += [mpz(1), mpz(0), mpz(0), mpz(0)]
-    A1[1] += [mpz(0), mpz(1), mpz(0), mpz(0)]
-    A1[2] += [mpz(0), mpz(0), mpz(1), mpz(0)]
-    A1[3] += [mpz(0), mpz(0), mpz(0), mpz(1)]
     assert A == A1
