@@ -218,7 +218,9 @@ class WidgetGallery(QDialog):
 
     def write_hyperplanes(self):
         self.clear_layout(self.hyperplaneDisplay)
-        colors = well_distinguishable_colors(len(self.lrs.hyperplanes) + 1)
+        colors = well_distinguishable_colors(
+            len(self.lrs.hyperplanes) + len(self.lrs.bounding_box) + 1
+        )
 
         def get_label_stylesheet(i):
             color = 'rgb({}, {}, {})'.format(
@@ -233,10 +235,13 @@ class WidgetGallery(QDialog):
 
         vars = self.lrs.hyperplane_variables()
 
-        for i, hyperplane in enumerate(self.lrs.hyperplanes):
+        for i, hyperplane in enumerate(self.lrs.hyperplanes + self.lrs.bounding_box):
             hyperplane_label = QLabel()
             hyperplane_label.setAlignment(Qt.AlignLeft)
-            var_text = 'Var: {}; Hyperplane: '.format(vars[i])
+            if vars[i].box_variable:
+                var_text = 'Var: {}; Box: '.format(vars[i])
+            else:
+                var_text = 'Var: {}; Hyperplane: '.format(vars[i])
             hyperplane_label.setText(var_text + hyperplane_string(hyperplane))
             hyperplane_label.setStyleSheet(
                 get_label_stylesheet(i)
@@ -259,11 +264,11 @@ class WidgetGallery(QDialog):
         self.write_status()
 
     def plot(self):
-        x_min = int(self.min_x_box.text())
-        x_max = int(self.max_x_box.text())
+        x_min = float(self.min_x_box.text())
+        x_max = float(self.max_x_box.text())
 
-        y_min = int(self.min_y_box.text())
-        y_max = int(self.max_y_box.text())
+        y_min = float(self.min_y_box.text())
+        y_max = float(self.max_y_box.text())
 
         self.figure.clear()
 
@@ -277,6 +282,7 @@ class WidgetGallery(QDialog):
         # plot data
         plot_arrangement(
             self.lrs.hyperplanes,
+            self.lrs.bounding_box,
             ax=ax, point=point, x_limits=(x_min, x_max),  y_limits=(y_min, y_max)
         )
         # refresh canvas
@@ -332,6 +338,8 @@ class WidgetGallery(QDialog):
             self.lrs = CrissCross(*reader(fileName))
             self.lrs.augment_matrix_with_objective()
             self.lrs.init_dicts()
+            if self.lrs.bounding_box is not None:
+                self.lrs.add_box_constraints(self.lrs.bounding_box)
             self.first_basis_button.setDisabled(False)
             self.update(update_hyperplanes=True)
 

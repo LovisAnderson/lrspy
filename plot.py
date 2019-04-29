@@ -64,8 +64,8 @@ def circle_out(x, y, s=20, *args, **kwargs):
     ax.scatter(x, y, s, facecolors='none', *args, **kwargs)
 
 
-def plot_arrangement(arrangement_matrix, ax=None, x_limits=(0, 4), y_limits=(0, 4), point=None):
-    colors = well_distinguishable_colors(len(arrangement_matrix) + 1)
+def plot_arrangement(arrangement_matrix, bounding_box=[], ax=None, x_limits=(0, 4), y_limits=(0, 4), point=None):
+    colors = well_distinguishable_colors(len(arrangement_matrix) + len(bounding_box) + 1)
     if ax is None:
         show = True
         ax = plt.gca()
@@ -73,9 +73,12 @@ def plot_arrangement(arrangement_matrix, ax=None, x_limits=(0, 4), y_limits=(0, 
         show = False
     ax.set_xlim(*x_limits)
     ax.set_ylim(*y_limits)
-    for i, hyperplane in enumerate(arrangement_matrix):
+    for i, hyperplane in enumerate(arrangement_matrix + bounding_box):
         line = hyperplane[1:] + hyperplane[0:1]
-        plotline(line, color=colors[i])
+        if i < len(arrangement_matrix):
+            plotline(line, color=colors[i])
+        else:
+            plotline(line, color=colors[i], linestyle='dashed')
     if point is not None:
         circle_out(point[0], point[1])
     if show:
