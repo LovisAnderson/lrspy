@@ -2,8 +2,8 @@ import lrs
 
 
 class CrissCross(lrs.Lrs):
-    def __init__(self, hyperplane_matrix, m, d):
-        super().__init__(hyperplane_matrix, m, d)
+    def __init__(self, hyperplane_matrix, m, d, bounding_box=None):
+        super().__init__(hyperplane_matrix, m, d, bounding_box=bounding_box)
 
     def select_pivot(self):
         basis_index = self.d

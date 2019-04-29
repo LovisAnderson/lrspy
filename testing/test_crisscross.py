@@ -64,6 +64,17 @@ def test_box_search(from_file):
     while status != SearchStatus.DONE:
         status = search.__next__()
 
+def test_box_search_from_file(from_file_boxed):
+    lrs = CrissCross(*from_file_boxed)
+    lrs.augment_matrix_with_objective()
+    lrs.init_dicts()
+    lrs.add_box_constraints(lrs.bounding_box)
+    lrs.first_basis()
+    search = lrs.search()
+    status = SearchStatus.NONE
+    while status != SearchStatus.DONE:
+        status = search.__next__()
+
 def test_zero_vertex(zero_vertex):
     lrs = CrissCross(*zero_vertex)
     lrs.augment_matrix_with_objective()

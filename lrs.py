@@ -6,7 +6,7 @@ from enum import Enum
 
 
 class Lrs(ABC):
-    def __init__(self, hyperplane_matrix, m, d):
+    def __init__(self, hyperplane_matrix, m, d, bounding_box=None):
         self.hyperplanes = deepcopy(hyperplane_matrix)
         self.matrix = hyperplane_matrix
         self.nr_hyperplanes = m
@@ -20,7 +20,8 @@ class Lrs(ABC):
         self.position_vectors = [] # relative position to hyperplanes for each vertex
         self.i = self.d # Basis index in which we pivot
         self.j = 0 # Cobasis index in which we pivot
-        self.boxed = False # Flag that indicates if we pivot inside a box (given through constraints)
+        self.boxed = True if bounding_box is not None else False # Flag that indicates if we pivot inside a box (given through constraints)
+        self.bounding_box = bounding_box if bounding_box is not None else []
 
     def set_objective(self):
         for i in range(1, self.d):
@@ -356,6 +357,7 @@ class Lrs(ABC):
         for i, element in enumerate(list):
             if element >= number:
                 return i - 1
+
 
 def hyperplane_string(hyperplane):
     sign1 = '+' if hyperplane[1] > 0 else '-'

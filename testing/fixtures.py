@@ -99,8 +99,15 @@ def simplex():
 @pytest.fixture
 def from_file():
     p = Path(__file__).parents[1].joinpath('data/arrangement.ine')
-    matrix, m, d = reader(str(p))
-    return matrix, m, d
+    matrix, m, d, _ = reader(str(p))
+    return matrix, m, d,
+
+
+@pytest.fixture
+def from_file_boxed():
+    p = Path(__file__).parents[1].joinpath('data/arrangement_boxed.ine')
+    matrix, m, d, box_matrix = reader(str(p))
+    return matrix, m, d, box_matrix
 
 
 @pytest.fixture
@@ -118,5 +125,5 @@ def zero_vertex():
 @pytest.fixture
 def nine_overlap():
     p = Path(__file__).parents[1].joinpath('data/nine_overlap.ine')
-    matrix, m, d = reader(str(p))
+    matrix, m, d, _ = reader(str(p))
     return matrix, m, d

@@ -3,28 +3,38 @@ from gmpy2 import mpq, mpz
 
 
 def reader(path):
-    readMatrix = False
-    readDimensions = False
+    read_matrix = False
+    read_dimensions = False
+    read_bounding_box = False
     offset_at_the_end = False
-    numberType = NumberType.undefined
+    number_type = NumberType.undefined
     matrix = []
+    bounding_box_matrix = []
     with open(path) as infile:
         for line in infile.readlines():
             if line.startswith('flipped representation'):
                 offset_at_the_end = True
             if line.startswith('begin'):
-                readMatrix = True
-                readDimensions = True
+                read_matrix = True
+                read_dimensions = True
                 continue
             elif line.startswith('end'):
-                readMatrix = False
-            elif readDimensions:
-                m, d, numberType= parse_matrix_meta(line)
-                readDimensions = False
+                read_matrix = False
+            elif line.startswith('bounding box'):
+                read_bounding_box = True
+            elif line.startswith('bounding box end'):
+                read_bounding_box = False
+            elif read_dimensions:
+                m, d, number_type= parse_matrix_meta(line)
+                read_dimensions = False
                 continue
-            elif readMatrix:
-                matrix.append(parse_line(line, d, numberType, offset_at_the_end))
-    return matrix, m, d
+            elif read_matrix:
+                matrix.append(parse_hyperplane_line(line, d, number_type, offset_at_the_end))
+            elif read_bounding_box:
+                bounding_box_matrix.append(
+                    parse_hyperplane_line(line, d, number_type, offset_at_the_end)
+                )
+    return matrix, m, d, bounding_box_matrix
 
 
 def parse_matrix_meta(line):
@@ -35,7 +45,7 @@ def parse_matrix_meta(line):
     return m, d, numberType
 
 
-def parse_line(line, dim, numberType, offset_at_the_end=False):
+def parse_hyperplane_line(line, dim, numberType, offset_at_the_end=False):
     entries = line.split()
     if offset_at_the_end:
         entries = [entries[-1]] + entries[:-1]
