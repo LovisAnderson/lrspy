@@ -38,27 +38,35 @@ class CrissCross(lrs.Lrs):
         return 0, 0
 
     def necessary_condition_for_reverse(self):
-        if self.boxed:
-            if not self.pivot_stays_in_box(self.i, self.j):
-                print('Reverse Does not stay in box!')
-                return False
-            return self.matrix[self.B.order[self.i]][self.C.order[self.j]] != 0
+        def lower_index_pivot(k, k_in_cobasis=False):
+            i = self.i if k_in_cobasis else k
+            j = k if k_in_cobasis else self.j
+            m_i = self.B.order[self.i] if k_in_cobasis else self.B.order[k]
+            m_j = self.C.order[k] if k_in_cobasis else self.C.order[self.j]
+            pivot_element = self.matrix[m_i][m_j]
+            if (k_in_cobasis and pivot_element < 0) or (not k_in_cobasis and pivot_element > 0):
+                if not self.boxed or self.pivot_stays_in_box(i, j):
+                    return True
+            return False
+
+        if self.boxed and not self.pivot_stays_in_box(self.i, self.j):
+            return False
+
         if self.matrix[self.B.order[self.i]][0] > 0:
             if (
                     self.matrix[self.B.order[self.i]][self.C.order[self.j]] > 0 and
-                    all(
-                        self.matrix[self.B.order[self.i]][self.C.order[k]] >= 0
-                        for k in range(0, self.max_index_of_smaller_number(self.C, self.B[self.i]) + 1)
-                    )
+                    not any(lower_index_pivot(k, k_in_cobasis=True)
+                            for k in
+                            range(0, self.max_index_of_smaller_number(self.C, self.B[self.i]) + 1)
+                            )
             ):
                 return True
         if self.matrix[0][self.C.order[self.j]] < 0:
             if (self.matrix[self.B.order[self.i]][self.C.order[self.j]] < 0 and
-                all(
-                    self.matrix[self.B.order[k]][self.C.order[self.j]] <= 0
-                    for k in range(self.d, self.max_index_of_smaller_number(self.C, self.C[self.j]) + 1)
-                )
-            ):
+                not any(lower_index_pivot(k, k_in_cobasis=False)
+                        for k in
+                        range(self.d, self.max_index_of_smaller_number(self.C, self.C[self.j]) + 1)
+                        )):
                 return True
         print('Necessary Condition for reverse not fulfilled!')
         return False
