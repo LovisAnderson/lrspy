@@ -78,7 +78,7 @@ class Lrs(ABC):
         if self.boxed:
             self.resort_inequalities() # todo necessary?
             self.move_into_box()
-        self.go_to_root()
+        self.make_feasible()
         self.resort_inequalities()
         self.appendSolution()
 
@@ -96,6 +96,11 @@ class Lrs(ABC):
         while self.i != 0 or self.j != 0:
             self.pivot()
             self.i, self.j = self.select_pivot()
+
+    def make_feasible(self):
+        for i, row in enumerate(self.matrix[self.d:self.m+1]):
+            if row[0] < 0:
+                self.matrix[i + self.d] = [-a for a in row]
 
     def move_into_box(self):
 
