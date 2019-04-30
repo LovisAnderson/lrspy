@@ -22,6 +22,7 @@ class Lrs(ABC):
         self.j = 0 # Cobasis index in which we pivot
         self.boxed = True if bounding_box is not None else False # Flag that indicates if we pivot inside a box (given through constraints)
         self.bounding_box = bounding_box if bounding_box is not None else []
+        self.drop_objective_value = True # Flag to indicate that we do not compute or update the target value of the objective (A[0}[d])
 
     def set_objective(self):
         for i in range(1, self.d):
@@ -277,6 +278,8 @@ class Lrs(ABC):
         return str
 
     def matrix_entry_after_pivot(self, i, j, pivotRow, pivotColumn, pivotElement):
+        if self.drop_objective_value and i == 0 and j == 0:
+            return mpz(0)
         if i == pivotRow:
             if j == pivotColumn:
                 return self.det
