@@ -271,7 +271,7 @@ class Lrs(ABC):
 
         str += 'Basis: {} \n'.format(self.B)
         str += 'Cobasis: {}\n'.format(self.C)
-        str += 'det: {}\n'.format(self.det)
+        str += 'det: {}\n'.format(format_int(self.det))
         str += 'matrix:\n'
         str += self.matrix_with_variables_str()
         return str
@@ -336,7 +336,8 @@ class Lrs(ABC):
         for i, b in enumerate(self.B):
             row = []
             for j, c in enumerate(self.C):
-                row.append('A[{}][{}]={}, '.format(b, c, self.matrix[self.B.order[i]][self.C.order[j]]))
+                entry = format_int(self.matrix[self.B.order[i]][self.C.order[j]], with_plus_sign=False)
+                row.append('A[{}][{}]={}, '.format(b, c, entry))
             str += '{:<12}  {:<12}  {:<12}'.format(*row)
             str += '\n'
         return str
@@ -360,14 +361,24 @@ class Lrs(ABC):
 
 
 def hyperplane_string(hyperplane):
-    sign1 = '+' if hyperplane[1] > 0 else '-'
-    sign2 = '+' if hyperplane[2] > 0 else '-'
-    hyperplane_str = str(hyperplane[0])
-    hyperplane_str += sign1 + str(abs(hyperplane[1])) + 'x<sub>1</sub>'
-    hyperplane_str += sign2 + str(abs(hyperplane[2])) + 'x<sub>2</sub>'
+    hyperplane_str = format_int(hyperplane[0], with_plus_sign=False)
+    for i, xi in enumerate(hyperplane[1:]):
+        hyperplane_str += format_int(xi) + 'x<sub>{}</sub>'.format(i)
     hyperplane_str += '= 0'
     return hyperplane_str
 
+
+def format_int(integer, with_plus_sign=True):
+    if with_plus_sign:
+        if abs(integer) < 1e+6:
+            return format(integer, '+')
+        else:
+            return '{:+.3E}'.format(int(integer))
+    else:
+        if abs(integer) < 1e+6:
+            return format(integer)
+        else:
+            return '{:.3E}'.format(int(integer))
 
 class SearchStatus(Enum):
     NONE = "no status"
