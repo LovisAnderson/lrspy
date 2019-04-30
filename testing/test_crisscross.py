@@ -98,5 +98,25 @@ def test_large_instance(nine_overlap):
     lrs.first_basis()
     search = lrs.search()
     status = SearchStatus.NONE
+    i = 0
+    while status != SearchStatus.DONE and i <= 100:
+        status = search.__next__()
+        i += 1
+
+
+def test_cs_boxed(cs_polytopes_boxed):
+    lrs = CrissCross(*cs_polytopes_boxed)
+    lrs.augment_matrix_with_objective()
+    lrs.init_dicts()
+    lrs.add_box_constraints(lrs.bounding_box)
+    lrs.first_basis()
+    search = lrs.search()
+    status = SearchStatus.NONE
     while status != SearchStatus.DONE:
         status = search.__next__()
+    print(len(lrs.vertices))
+    nr_vertices_in_box = 0
+    for cobasis in lrs.cobases:
+        if not any(c.box_variable for c in cobasis[:-1]):
+            nr_vertices_in_box += 1
+    print(nr_vertices_in_box)
