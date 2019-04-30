@@ -32,8 +32,8 @@ def test_search(from_file):
     status = SearchStatus.NONE
     while status != SearchStatus.DONE:
         status = search.__next__()
-    bases = [[0, 1, 2, 5, 6], [0, 1, 2, 3, 6], [0, 1, 2, 4, 6], [0, 1, 2, 4, 5], [0, 1, 2, 3, 4]]
-    assert all(basis in lrs.bases for basis in bases)
+    cobases = [[3, 4, 7], [4, 5, 7], [3, 5, 7], [3, 6, 7], [5, 6, 7]]
+    assert all(cobasis in lrs.cobases for cobasis in cobases)
 
 
 def test_negative_search(from_file):
@@ -64,6 +64,7 @@ def test_box_search(from_file):
     while status != SearchStatus.DONE:
         status = search.__next__()
 
+
 def test_box_search_from_file(from_file_boxed):
     lrs = CrissCross(*from_file_boxed)
     lrs.augment_matrix_with_objective()
@@ -74,6 +75,7 @@ def test_box_search_from_file(from_file_boxed):
     status = SearchStatus.NONE
     while status != SearchStatus.DONE:
         status = search.__next__()
+
 
 def test_zero_vertex(zero_vertex):
     lrs = CrissCross(*zero_vertex)

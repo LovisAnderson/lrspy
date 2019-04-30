@@ -33,5 +33,5 @@ def test_search(from_file):
     while status != SearchStatus.DONE:
         status = search.__next__()
 
-    bases = [[0, 1, 2, 5, 6], [0, 1, 2, 3, 6], [0, 1, 2, 4, 6], [0, 1, 2, 4, 5], [0, 1, 2, 3, 4]]
-    assert all(basis in lrs.bases for basis in bases)
+    cobases = [[3, 4, 7], [4, 5, 7], [3, 5, 7], [3, 6, 7], [5, 6, 7]]
+    assert all(cobasis in lrs.cobases for cobasis in cobases)

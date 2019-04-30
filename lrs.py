@@ -15,7 +15,7 @@ class Lrs(ABC):
         self.m = m # Number of input hyperplanes
         self.d = d # dimension of embedding space + 1 (projective dimension)
         self.det = mpz(1) # determinant of the matrix, quasi the shared denominator
-        self.bases = [] # list of bases found
+        self.cobases = [] # list of cobases found
         self.vertices = [] # list of vertices found
         self.position_vectors = [] # relative position to hyperplanes for each vertex
         self.i = self.d # Basis index in which we pivot
@@ -81,7 +81,7 @@ class Lrs(ABC):
             self.move_into_box()
         self.make_feasible()
         self.resort_inequalities()
-        self.appendSolution()
+        self.append_solution()
 
     def resort_inequalities(self):
         # Sorts variables corresponding to inequalities s.t. they basis is 0, ..., m
@@ -188,7 +188,7 @@ class Lrs(ABC):
             while self.j < self.d or self.B[self.m] != self.m:
                 if self.j == self.d - 1 and self.B[self.m] == self.m:
                     print('All bases found!')
-                    print('bases:', self.bases)
+                    print('cobases:', self.cobases)
                     print('vertices', self.vertices)
                     print('position vectors:', self.position_vectors)
                     nextbasis = False
@@ -210,16 +210,16 @@ class Lrs(ABC):
                         backtrack = True
                     else:
                         if self.lex_min():
-                            self.appendSolution()
+                            self.append_solution()
                         yield SearchStatus.NEWBASIS
 
                         print('start tree search from new root')
                         break
 
-    def appendSolution(self):
+    def append_solution(self):
         print('Append basis: {}'.format(self.B))
         print('Vertex: {}'.format(self.get_vertex()))
-        self.bases.append(deepcopy(self.B))
+        self.cobases.append(deepcopy(self.C))
         self.vertices.append(self.get_vertex())
         self.position_vectors.append(self.get_position_vector())
 
