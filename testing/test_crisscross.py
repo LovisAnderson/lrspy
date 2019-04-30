@@ -114,9 +114,8 @@ def test_cs_boxed(cs_polytopes_boxed):
     status = SearchStatus.NONE
     while status != SearchStatus.DONE:
         status = search.__next__()
-    print(len(lrs.vertices))
     nr_vertices_in_box = 0
     for cobasis in lrs.cobases:
         if not any(c.box_variable for c in cobasis[:-1]):
             nr_vertices_in_box += 1
-    print(nr_vertices_in_box)
+    assert nr_vertices_in_box == 91
