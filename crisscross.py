@@ -19,7 +19,8 @@ class CrissCross(lrs.Lrs):
                             print('Primal infeasible! pivot i={}, j={}'.format(basis_index,
                                                                                cobasis_index))
                             return basis_index, cobasis_index
-                    raise ValueError
+                    if not self.boxed:
+                        raise ValueError
                 basis_index += 1
             elif cobasis_index < self.d and self.C[cobasis_index] == i:
                 if self.matrix[0][self.C.order[cobasis_index]] > 0:
@@ -33,7 +34,9 @@ class CrissCross(lrs.Lrs):
                             print('Dual infeasible! pivot i={}, j={}'.format(basis_index,
                                                                                cobasis_index))
                             return basis_index, cobasis_index
-                    raise ValueError
+                    if not self.boxed:
+                        # todo Is it possible to have dual infeasible solutions with no valid pivot?
+                        raise ValueError
                 cobasis_index += 1
         return 0, 0
 
