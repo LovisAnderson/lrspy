@@ -50,12 +50,9 @@ def parse_hyperplane_line(line, dim, numberType, offset_at_the_end=False):
     if offset_at_the_end:
         entries = [entries[-1]] + entries[:-1]
     if len(entries) != dim:
-        print(len(entries))
         raise ValueError('Line has to have {} many entries: {}!'.format(dim, entries))
     if numberType == NumberType.float:
-        print(entries)
-        matrix_row = [upscaled_mpz_from_float(float(entry)) for entry in entries]
-        print(matrix_row)
+        matrix_row = upscale_matrix_row(entries)
     elif numberType == NumberType.rational:
         matrix_row = []
         for entry in entries:
@@ -71,8 +68,14 @@ def parse_hyperplane_line(line, dim, numberType, offset_at_the_end=False):
 
     return matrix_row
 
-def upscaled_mpz_from_float(entry, scaling=1e+7):
-    return mpz(entry*scaling)
+
+def upscale_matrix_row(row, scaling=1e+7):
+    integer_row = all(float(c).is_integer() for c in row)
+    if integer_row:
+        return [mpz(float(c)) for c in row]
+    else:
+        return [mpz(float(c)*scaling) for c in row]
+
 
 class NumberType(Enum):
     undefined = 0
