@@ -118,4 +118,4 @@ def test_cs_boxed(cs_polytopes_boxed):
     for cobasis in lrs.cobases:
         if not any(c.box_variable for c in cobasis[:-1]):
             nr_vertices_in_box += 1
-    assert nr_vertices_in_box == 91
+    assert nr_vertices_in_box == 70

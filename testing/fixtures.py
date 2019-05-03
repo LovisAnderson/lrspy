@@ -27,6 +27,7 @@ def arrangement():
         'd': d,
         'det': det,
         'nr_hyperplanes': m,
+        'drop_objective_value': True
     }
     return attributes
 
