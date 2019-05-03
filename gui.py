@@ -5,6 +5,7 @@ from PyQt5 import QtGui
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 from plot import plot_arrangement, well_distinguishable_colors
+from bland import Bland
 from crisscross import CrissCross
 from reader import reader
 from lrs import SearchStatus, hyperplane_string
@@ -19,6 +20,7 @@ class WidgetGallery(QDialog):
 
         self.first_basis_found = False
         self.lrs = None
+        self.pivot_rule = 'CrissCross'
         self.search_status = SearchStatus.NONE
 
         self.create_layout()
@@ -69,6 +71,10 @@ class WidgetGallery(QDialog):
         self.first_basis_button.clicked.connect(self.first_basis)
         self.first_basis_button.setDefault(True)
 
+        self.pivot_rule_button = QPushButton("Change Pivot Rule to Bland")
+        self.pivot_rule_button.clicked.connect(self.change_pivot_rule)
+        self.pivot_rule_button.setDefault(True)
+
         fileButton = QPushButton("Open File")
         fileButton.setDefault(True)
         fileButton.clicked.connect(self.open_file)
@@ -76,6 +82,7 @@ class WidgetGallery(QDialog):
         layout = QGridLayout()
         layout.addWidget(self.first_basis_button, 1, 0)
         layout.addWidget(fileButton, 2, 0)
+        layout.addWidget(self.pivot_rule_button, 3, 0)
 
         self.controls = layout
 
@@ -159,9 +166,6 @@ class WidgetGallery(QDialog):
             pivotHelperLayout.addWidget(self.pivot_label_j, 1, 0)
             pivotHelperLayout.addWidget(self.pivot_box_j, 1, 1)
 
-            # buttonHelperLayout = QVBoxLayout()
-            # buttonHelperLayout.addWidget(self.pivot_button)
-            # pivotHelperLayout.addLayout(buttonHelperLayout, 0, 2, 2, 1)
             pivotHelperLayout.addWidget(self.pivot_button, 1, 2)
             pivotHelperLayout.addWidget(self.select_pivot_button, 0, 2)
             return pivotHelperLayout
@@ -198,6 +202,14 @@ class WidgetGallery(QDialog):
         self.matrixDisplay = QLabel()
         self.matrixDisplay.setFont(LabelFont)
         self.matrixDisplay.setAlignment(Qt.AlignVCenter)
+
+    def change_pivot_rule(self):
+        if self.pivot_rule == 'CrissCross':
+            self.pivot_rule_button.setText('Change pivot rule to CrissCross')
+            self.pivot_rule = 'Bland'
+        elif self.pivot_rule == 'Bland':
+            self.pivot_rule_button.setText('Change pivot rule to CrissCross')
+            self.pivot_rule = 'CrissCross'
 
     def pivot(self):
         self.lrs.i = int(self.pivot_box_i.text())
@@ -298,6 +310,7 @@ class WidgetGallery(QDialog):
 
     def reset_controls(self):
         self.controls.addWidget(self.first_basis_button, 1, 0)
+        self.controls.addWidget(self.pivot_rule_button, 3, 0)
         self.next_pivot_button.setParent(None)
         self.search_step_button.setParent(None)
 
@@ -334,8 +347,12 @@ class WidgetGallery(QDialog):
                 self.first_basis_found = False
             else:
                 self.create_coordinate_controls()
+            self.pivot_rule_button.setParent(None)
             self.search_status = SearchStatus.NONE
-            self.lrs = CrissCross(*reader(fileName))
+            if self.pivot_rule == 'CrissCross':
+                self.lrs = CrissCross(*reader(fileName))
+            elif self.pivot_rule == 'Bland':
+                self.lrs = Bland(*reader(fileName))
             self.lrs.augment_matrix_with_objective()
             self.lrs.init_dicts()
             if self.lrs.bounding_box is not None:

@@ -56,7 +56,7 @@ def plotline(coef, *args, **kwargs):
         ax.axis(limits)
 
 
-def circle_out(x, y, s=20, *args, **kwargs):
+def circle_out(x, y, s=40, *args, **kwargs):
     '''Circle out points with size 's' and edgecolors'''
     ax = plt.gca()
     if 'edgecolors' not in kwargs:
@@ -80,7 +80,7 @@ def plot_arrangement(arrangement_matrix, bounding_box=[], ax=None, x_limits=(0, 
         else:
             plotline(line, color=colors[i], linestyle='dashed')
     if point is not None:
-        circle_out(point[0], point[1])
+        circle_out(point[0], point[1], color='red')
     if show:
         plt.show()
 
