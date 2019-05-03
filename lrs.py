@@ -3,6 +3,10 @@ from lrs_datastructures import LrsDict, Variable
 from copy import deepcopy
 from abc import ABC, abstractmethod
 from enum import Enum
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class Lrs(ABC):
@@ -121,7 +125,7 @@ class Lrs(ABC):
             if self.j == self.d:
                 raise ValueError
             self.pivot()
-        print(self.info_string('After first basis with bounding box'))
+        logger.debug(self.info_string('After first basis with bounding box'))
 
     def add_box_constraints(self, constraints):
         """
