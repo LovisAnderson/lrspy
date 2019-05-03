@@ -179,7 +179,7 @@ class Lrs(ABC):
         return True
 
     def search(self):
-        print(self.info_string('Search start:'))
+        logger.info(self.info_string('Search start:'))
         self.i = self.d
         nextbasis = True
         backtrack = False
@@ -188,19 +188,17 @@ class Lrs(ABC):
             self.i = self.d
             while self.j < self.d or self.B[self.m] != self.m:
                 if self.j == self.d - 1 and self.B[self.m] == self.m:
-                    print('All bases found!')
-                    print('cobases:', self.cobases)
-                    print('vertices', self.vertices)
-                    print('position vectors:', self.position_vectors)
+                    logging.info('All bases found!')
+                    logging.info('vertices', self.vertices)
                     nextbasis = False
                     yield SearchStatus.DONE
                     break
                 if backtrack:
-                    print('Pivoting back!')
+                    logging.debug('Pivoting back!')
                     self.i, self.j = self.select_pivot()
                     self.pivot()
                     self.increment()
-                    print('i: {}, j: {}'.format(self.i, self.j))
+                    logger.debug('i: {}, j: {}'.format(self.i, self.j))
                     backtrack = False
                     yield SearchStatus.BACKTRACKED
                 else:
@@ -214,12 +212,12 @@ class Lrs(ABC):
                             self.append_solution()
                         yield SearchStatus.NEWBASIS
 
-                        print('start tree search from new root')
+                        logger.debug('start tree search from new root')
                         break
 
     def append_solution(self):
-        print('Append basis: {}'.format(self.B))
-        print('Vertex: {}'.format(self.get_vertex()))
+        logger.debug('Append basis: {}'.format(self.B))
+        logger.debug('Vertex: {}'.format(self.get_vertex()))
         self.cobases.append(deepcopy(self.C))
         self.vertices.append(self.get_vertex())
         self.position_vectors.append(self.get_position_vector())
@@ -245,18 +243,18 @@ class Lrs(ABC):
         self.j = self.C.index(B_out)
 
     def reverse(self):
-        print('In reverse: i: {}, j:{}'.format(self.i, self.j))
+        logger.debug('In reverse: i: {}, j:{}'.format(self.i, self.j))
         possibleReversePivot = self.necessary_condition_for_reverse()
         if not possibleReversePivot:
-            print('Not a possible reverse pivot!')
+            logger.debug('Not a possible reverse pivot!')
             return False
         self.pivot()
         i_forward, j_forward = self.select_pivot()
         if i_forward == self.i and j_forward == self.j:
-            print('valid reverse')
+            logger.debug('valid reverse')
             return True
         else:
-            print('Not valid reverse: pivoting back')
+            logger.debug('Not valid reverse: pivoting back')
             self.pivot()
             return False
 
@@ -272,7 +270,7 @@ class Lrs(ABC):
 
         str += 'Basis: {} \n'.format(self.B)
         str += 'Cobasis: {}\n'.format(self.C)
-        str += 'det: {}\n'.format(format_int(self.det))
+        str += 'det: {}\n'.format(format_int(self.det, with_plus_sign=False))
         str += 'matrix:\n'
         str += self.matrix_with_variables_str()
         return str
@@ -296,8 +294,8 @@ class Lrs(ABC):
         return divexact(nominator, self.det)
 
     def pivot(self):
-        print('pivot: outIndex: {}; inIndex: {}'.format(self.i, self.j))
-        print('outVariable: {}; inVariable: {}'.format(self.B[self.i], self.C[self.j]))
+        logger.debug('pivot: outIndex: {}; inIndex: {}'.format(self.i, self.j))
+        logger.debug('outVariable: {}; inVariable: {}'.format(self.B[self.i], self.C[self.j]))
 
         row = self.B.order[self.i]
         column = self.C.order[self.j]
@@ -310,7 +308,7 @@ class Lrs(ABC):
         ]
         self.det = pivotElement if pivotElement > 0 else - pivotElement
         self.update()
-        print(self.info_string('After pivot:'))
+        logger.debug(self.info_string('After pivot:'))
 
     def increment(self):
         if self.i == self.m:

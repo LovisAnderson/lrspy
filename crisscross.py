@@ -1,5 +1,9 @@
 import lrs
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 
 class CrissCross(lrs.Lrs):
     def __init__(self, hyperplane_matrix, m, d, bounding_box=None):
@@ -16,7 +20,7 @@ class CrissCross(lrs.Lrs):
                         if self.boxed and not self.pivot_stays_in_box(basis_index, cobasis_index):
                             continue
                         if self.matrix[self.B.order[basis_index]][self.C.order[cobasis_index]] > 0:
-                            print('Primal infeasible! pivot i={}, j={}'.format(basis_index,
+                            logger.debug('Primal infeasible! pivot i={}, j={}'.format(basis_index,
                                                                                cobasis_index))
                             return basis_index, cobasis_index
                     if not self.boxed:
@@ -31,7 +35,7 @@ class CrissCross(lrs.Lrs):
                         if self.boxed and not self.pivot_stays_in_box(basis_index, cobasis_index):
                             continue
                         if self.matrix[self.B.order[basis_index]][self.C.order[cobasis_index]] < 0:
-                            print('Dual infeasible! pivot i={}, j={}'.format(basis_index,
+                            logger.debug('Dual infeasible! pivot i={}, j={}'.format(basis_index,
                                                                                cobasis_index))
                             return basis_index, cobasis_index
                     if not self.boxed:
@@ -71,5 +75,5 @@ class CrissCross(lrs.Lrs):
                         range(self.d, self.max_index_of_smaller_number(self.C, self.C[self.j]) + 1)
                         )):
                 return True
-        print('Necessary Condition for reverse not fulfilled!')
+        logger.debug('Necessary Condition for reverse not fulfilled!')
         return False
