@@ -34,4 +34,21 @@ def test_search(from_file):
         status = search.__next__()
 
     cobases = [[3, 4, 7], [4, 5, 7], [3, 5, 7], [3, 6, 7], [5, 6, 7]]
-    assert all(cobasis in lrs.cobases for cobasis in cobases)
+    assert all(list(cobasis in lrs.cobases for cobasis in cobases))
+
+
+def test_cs_boxed(cs_polytopes_boxed):
+    lrs = Bland(*cs_polytopes_boxed)
+    lrs.augment_matrix_with_objective()
+    lrs.init_dicts()
+    lrs.add_box_constraints(lrs.bounding_box)
+    lrs.first_basis()
+    search = lrs.search()
+    status = SearchStatus.NONE
+    while status != SearchStatus.DONE:
+        status = search.__next__()
+    nr_vertices_in_box = 0
+    for cobasis in lrs.cobases:
+        if not any(c.box_variable for c in cobasis[:-1]):
+            nr_vertices_in_box += 1
+    assert nr_vertices_in_box == 70
