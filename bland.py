@@ -5,6 +5,17 @@ class Bland(lrs.Lrs):
     def __init__(self, hyperplane_matrix, m, d, bounding_box=None):
         super().__init__(hyperplane_matrix, m, d, bounding_box=bounding_box)
 
+    def first_basis(self):
+        self.variables_into_basis()
+        if self.boxed:
+            self.resort_inequalities() # todo necessary?
+            self.move_to_box_corner()
+
+        self.make_feasible()
+        self.set_objective()
+        self.resort_inequalities()
+        self.append_solution()
+
     def select_pivot(self):
         i = 0
         j = self.d

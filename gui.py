@@ -95,7 +95,7 @@ class WidgetGallery(QDialog):
         min_x_label.setText('x min:')
 
         self.min_x_box = QLineEdit(self)
-        self.min_x_box.setText('0')
+        self.min_x_box.setText('-12')
 
         # max x text field
         max_x_label = QLabel()
@@ -103,7 +103,7 @@ class WidgetGallery(QDialog):
         max_x_label.setText('x max:')
 
         self.max_x_box = QLineEdit(self)
-        self.max_x_box.setText('10')
+        self.max_x_box.setText('32')
 
         # min y text field
         min_y_label = QLabel()
@@ -111,7 +111,7 @@ class WidgetGallery(QDialog):
         min_y_label.setText('y min:')
 
         self.min_y_box = QLineEdit(self)
-        self.min_y_box.setText('0')
+        self.min_y_box.setText('-12')
 
         # max y text field
         max_y_label = QLabel()
@@ -119,7 +119,7 @@ class WidgetGallery(QDialog):
         max_y_label.setText('y max:')
 
         self.max_y_box = QLineEdit(self)
-        self.max_y_box.setText('10')
+        self.max_y_box.setText('210')
 
         # button for updating bounds
         self.set_coordinates = QPushButton("Set Coordinates")

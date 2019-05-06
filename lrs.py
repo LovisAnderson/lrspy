@@ -1,8 +1,9 @@
-from gmpy2 import mpz, divexact
 from lrs_datastructures import LrsDict, Variable
-from copy import deepcopy
+
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from enum import Enum
+from gmpy2 import mpz, divexact
 import logging
 
 logger = logging.getLogger(__name__)
@@ -80,11 +81,11 @@ class Lrs(ABC):
 
     def first_basis(self):
         self.variables_into_basis()
-        self.set_objective()
         if self.boxed:
             self.resort_inequalities() # todo necessary?
             self.move_into_box()
         self.make_feasible()
+        self.set_objective()
         self.resort_inequalities()
         self.append_solution()
 
@@ -126,6 +127,19 @@ class Lrs(ABC):
                 raise ValueError
             self.pivot()
         logger.debug(self.info_string('After first basis with bounding box'))
+
+    def move_to_box_corner(self):
+        not_box_cobasis_indices = [j for j, c in enumerate(self.C[:-1]) if not c.box_variable]
+        while len(not_box_cobasis_indices) > 0:
+            j = not_box_cobasis_indices[0]
+            box_basis_indices = [i for i, b in enumerate(self.B) if b.box_variable]
+            for i in box_basis_indices:
+                if self.matrix[self.B.order[i]][self.B.order[j]] != 0:
+                    self.i = i
+                    self.j = j
+                    self.pivot()
+                    break
+            not_box_cobasis_indices = [j for j, c in enumerate(self.C[:-1]) if not c.box_variable]
 
     def add_box_constraints(self, constraints):
         """
