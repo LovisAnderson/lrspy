@@ -119,3 +119,22 @@ def test_cs_boxed(cs_polytopes_boxed):
         if not any(c.box_variable for c in cobasis[:-1]):
             nr_vertices_in_box += 1
     assert nr_vertices_in_box == 70
+
+
+def test_hueh_boxed():
+    from reader import reader
+    path = '/nfs/OPTI/bzfander/lrs_python/data/hueh_358_boxed.ine'
+    parsed = reader(path)
+    lrs = CrissCross(*parsed)
+    lrs.augment_matrix_with_objective()
+    lrs.init_dicts()
+    lrs.add_box_constraints(lrs.bounding_box)
+    lrs.first_basis()
+    search = lrs.search()
+    from lrs import SearchStatus
+    status = SearchStatus.NONE
+    i = 0
+    while status != SearchStatus.DONE and i < 1000:
+        status = search.__next__()
+        i += 1
+    assert i == 1000

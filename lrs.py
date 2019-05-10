@@ -5,6 +5,8 @@ from copy import deepcopy
 from enum import Enum
 from gmpy2 import mpz, divexact
 import logging
+import random
+random.seed(1)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -77,12 +79,12 @@ class Lrs(ABC):
                    self.matrix[self.B.order[self.i]][self.C.order[self.j]] == 0):
                 self.i += 1
             self.pivot()
-        print(self.info_string('Variables moved into basis.'))
+        logging.debug(self.info_string('Variables moved into basis.'))
 
     def first_basis(self):
         self.variables_into_basis()
         if self.boxed:
-            self.resort_inequalities() # todo necessary?
+            # self.resort_inequalities() # todo necessary?
             self.move_into_box()
         self.make_feasible()
         self.set_objective()
@@ -95,7 +97,7 @@ class Lrs(ABC):
 
         for i, b in enumerate(self.B[self.d:]):
             self.B[i + self.d] = self.B[i + self.d].change_variable(i + self.d)
-        for i, c in enumerate(self.C[:-1]):
+        for i, c in enumerate(self.C):
             self.C[i] = self.C[i].change_variable(self.m + 1 + i)
 
     def go_to_root(self):
@@ -112,6 +114,7 @@ class Lrs(ABC):
     def move_into_box(self):
 
         while not self.inside_box():
+            self.j = 0
             for i, b in enumerate(self.B):
                 if not b.box_variable:
                     continue
@@ -119,10 +122,13 @@ class Lrs(ABC):
                     # Primal infeasible Variable
                     self.i = i
                     break
-            while self.matrix[self.B.order[self.i]][self.C.order[self.j]] <= 0:
+            while (self.j < self.d and
+                   (self.matrix[self.B.order[self.i]][self.C.order[self.j]] == 0 or
+                   (self.C[self.j].box_variable and self.matrix[self.B.order[self.i]][self.C.order[self.j]] < 0))):
+                self.j += 1
                 # To get primal feasible variable the sign of A[Row[i]][0] has to change
                 # This happens if A[Row[i]][Column[j]] > 0
-                self.j += 1
+
             if self.j == self.d:
                 raise ValueError
             self.pivot()
@@ -140,6 +146,14 @@ class Lrs(ABC):
                     self.pivot()
                     break
             not_box_cobasis_indices = [j for j, c in enumerate(self.C[:-1]) if not c.box_variable]
+        # todo do this smart
+        violated_indices = self.violated_box_variable_indices()
+        while len(violated_indices) > 0:
+            self.i = random.choice(violated_indices)
+            self.j = random.choice(range(self.d - 1))
+            self.pivot()
+            violated_indices = self.violated_box_variable_indices()
+
 
     def add_box_constraints(self, constraints):
         """
@@ -189,6 +203,11 @@ class Lrs(ABC):
     @abstractmethod
     def select_pivot(self):
         pass
+
+    def violated_box_variable_indices(self):
+        violating_indices = [i for i, b in enumerate(self.B)
+                             if b.box_variable and self.matrix[self.B.order[i]][0] < 0]
+        return violating_indices
 
     def inside_box(self):
         for k, v in enumerate(self.B):
@@ -357,7 +376,7 @@ class Lrs(ABC):
             for j, c in enumerate(self.C):
                 entry = format_int(self.matrix[self.B.order[i]][self.C.order[j]], with_plus_sign=False)
                 row.append('A[{}][{}]={}, '.format(b, c, entry))
-            str += '{:<12}  {:<12}  {:<12}'.format(*row)
+            str += ' '.join(['{:<12}']*self.d).format(*row)
             str += '\n'
         return str
 

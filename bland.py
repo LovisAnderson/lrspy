@@ -8,7 +8,7 @@ class Bland(lrs.Lrs):
     def first_basis(self):
         self.variables_into_basis()
         if self.boxed:
-            self.resort_inequalities() # todo necessary?
+            # self.resort_inequalities() # todo necessary?
             self.move_to_box_corner()
 
         self.make_feasible()
