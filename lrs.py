@@ -6,6 +6,9 @@ from enum import Enum
 from gmpy2 import mpz, divexact
 import logging
 import random
+from vertex import Vertex
+
+
 random.seed(1)
 
 logger = logging.getLogger(__name__)
@@ -27,7 +30,7 @@ class Lrs(ABC):
         self.position_vectors = [] # relative position to hyperplanes for each vertex
         self.i = self.d # Basis index in which we pivot
         self.j = 0 # Cobasis index in which we pivot
-        self.boxed = True if bounding_box is not None else False # Flag that indicates if we pivot inside a box (given through constraints)
+        self.boxed = True if bounding_box else False # Flag that indicates if we pivot inside a box (given through constraints)
         self.bounding_box = bounding_box if bounding_box is not None else []
         self.drop_objective_value = True # Flag to indicate that we do not compute or update the target value of the objective (A[0}[d])
 
@@ -252,12 +255,17 @@ class Lrs(ABC):
                         logger.debug('start tree search from new root')
                         break
 
-    def append_solution(self):
-        logger.debug('Append basis: {}'.format(self.B))
-        logger.debug('Vertex: {}'.format(self.get_vertex()))
-        self.cobases.append(deepcopy(self.C))
-        self.vertices.append(self.get_vertex())
-        self.position_vectors.append(self.get_position_vector())
+    def append_solution(self, check_lexicographic_order=True):
+
+        coordinates = self.get_vertex()
+        vertex = Vertex(coordinates, list(self.C[:-1]))
+        vertex.compute_position_vector(self.matrix, self.B, self.nr_hyperplanes)
+        if not check_lexicographic_order or vertex.cobasis_lexicographic_minimal():
+            logger.debug('Append basis: {}'.format(self.C))
+            logger.debug('Vertex: {}'.format(self.get_vertex()))
+            self.vertices.append(vertex)
+        else:
+            logger.debug('Vertex cobasis not lex min: {}'.format(self.C))
 
     def get_vertex(self):
         vertex = tuple(self.matrix[self.B.order[k]][0] / self.det for k in range(1, self.d))
@@ -265,10 +273,17 @@ class Lrs(ABC):
 
     def get_position_vector(self):
         position_vector = [0]*self.nr_hyperplanes
+        degeneracies = []
         for i, b in enumerate(self.B):
             if b.slack_variable and not b.box_variable:
-                position_vector[b.hyperplane_index] = 1 if self.matrix[self.B.order[i]][0] < 0 else -1
-        return position_vector
+                if self.matrix[self.B.order[i]][0] > 0:
+                    position_vector[b.hyperplane_index] = 1
+                elif self.matrix[self.B.order[i]][0] < 0:
+                    position_vector[b.hyperplane_index] = -1
+                else:
+                    position_vector[b.hyperplane_index] = 0
+                    degeneracies.append(b)
+        return position_vector,
 
     def update(self):
         B_out = deepcopy(self.B[self.i])
@@ -341,7 +356,7 @@ class Lrs(ABC):
 
         self.matrix = [
             [self.matrix_entry_after_pivot(i, j, row, column, pivotElement) for j in range(self.d)]
-            for i in range(self.m +1)
+            for i in range(self.m + 1)
         ]
         self.det = pivotElement if pivotElement > 0 else - pivotElement
         self.update()
