@@ -366,7 +366,6 @@ class WidgetGallery(QDialog):
             self.first_basis_button.setDisabled(False)
             self.update(update_hyperplanes=True)
 
-        self.controls = layout
 import sys
 app = QApplication(sys.argv)
 gallery = WidgetGallery()
