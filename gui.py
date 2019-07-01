@@ -12,6 +12,7 @@ from lrs import SearchStatus, hyperplane_string
 
 LabelFont = QtGui.QFont('SansSerif', 12)
 
+
 class WidgetGallery(QDialog):
     def __init__(self, parent=None):
         super(WidgetGallery, self).__init__(parent)
@@ -71,9 +72,7 @@ class WidgetGallery(QDialog):
         self.first_basis_button.clicked.connect(self.first_basis)
         self.first_basis_button.setDefault(True)
 
-        self.pivot_rule_button = QPushButton("Change Pivot Rule to Bland")
-        self.pivot_rule_button.clicked.connect(self.change_pivot_rule)
-        self.pivot_rule_button.setDefault(True)
+        self.create_pivot_rule_button()
 
         fileButton = QPushButton("Open File")
         fileButton.setDefault(True)
@@ -85,6 +84,11 @@ class WidgetGallery(QDialog):
         layout.addWidget(self.pivot_rule_button, 3, 0)
 
         self.controls = layout
+
+    def create_pivot_rule_button(self):
+        self.pivot_rule_button = QPushButton("Change Pivot Rule to Bland")
+        self.pivot_rule_button.clicked.connect(self.change_pivot_rule)
+        self.pivot_rule_button.setDefault(True)
 
     def create_coordinate_controls(self):
         coordinate_controls = QGridLayout()
@@ -310,6 +314,7 @@ class WidgetGallery(QDialog):
 
     def reset_controls(self):
         self.controls.addWidget(self.first_basis_button, 1, 0)
+        self.create_pivot_rule_button()
         self.controls.addWidget(self.pivot_rule_button, 3, 0)
         self.next_pivot_button.setParent(None)
         self.search_step_button.setParent(None)
@@ -347,7 +352,8 @@ class WidgetGallery(QDialog):
                 self.first_basis_found = False
             else:
                 self.create_coordinate_controls()
-            self.pivot_rule_button.setParent(None)
+            self.pivot_rule_button.deleteLater()
+            #self.pivot_rule_button.setParent(None)
             self.search_status = SearchStatus.NONE
             if self.pivot_rule == 'CrissCross':
                 self.lrs = CrissCross(*reader(fileName))
@@ -355,11 +361,12 @@ class WidgetGallery(QDialog):
                 self.lrs = Bland(*reader(fileName))
             self.lrs.augment_matrix_with_objective()
             self.lrs.init_dicts()
-            if self.lrs.bounding_box is not None:
+            if len(self.lrs.bounding_box) > 0:
                 self.lrs.add_box_constraints(self.lrs.bounding_box)
             self.first_basis_button.setDisabled(False)
             self.update(update_hyperplanes=True)
 
+        self.controls = layout
 import sys
 app = QApplication(sys.argv)
 gallery = WidgetGallery()
