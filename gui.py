@@ -353,7 +353,6 @@ class WidgetGallery(QDialog):
             else:
                 self.create_coordinate_controls()
             self.pivot_rule_button.deleteLater()
-            #self.pivot_rule_button.setParent(None)
             self.search_status = SearchStatus.NONE
             if self.pivot_rule == 'CrissCross':
                 self.lrs = CrissCross(*reader(fileName))
