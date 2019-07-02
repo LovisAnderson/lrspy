@@ -1,6 +1,7 @@
 from reader import reader
-from gmpy2 import mpz
-from lrs import Lrs
+from bland import Bland
+from crisscross import CrissCross
+from lrs import Lrs, SearchStatus
 from copy import deepcopy
 from testing.fixtures import *
 
@@ -25,13 +26,6 @@ def test_augment_with_objective(from_file):
     lrs.augment_matrix_with_objective()
     lrs.init_dicts()
     lrs.variables_into_basis()
-
-
-def test_position_vector(arrangement2):
-    simpleLrs = ConcreteLrs.__new__(ConcreteLrs)
-    simpleLrs.set_attributes(arrangement2)
-    simpleLrs.get_position_vector()
-    assert simpleLrs.get_position_vector() == [0, 1, 0, -1]
 
 
 def test_pivot(arrangement):
@@ -64,3 +58,36 @@ def test_bounding_box(from_file):
     lrs.variables_into_basis()
     lrs.move_into_box()
     lrs.set_objective()
+
+
+def test_pivots_by_comparing():
+    # Find vertices using bland
+    b = Bland(*reader('data/cs_polytopes_boxed.ine'))
+    b.augment_matrix_with_objective()
+    b.init_dicts()
+    b.add_box_constraints(b.bounding_box)
+    b.first_basis()
+    search = b.search()
+    status = SearchStatus.NONE
+    while status != SearchStatus.DONE:
+        status = search.__next__()
+
+    # Find vertices using criss-cross
+    c = CrissCross(*reader('data/cs_polytopes_boxed.ine'))
+    c.augment_matrix_with_objective()
+    c.init_dicts()
+    c.add_box_constraints(b.bounding_box)
+    c.first_basis()
+    search = c.search()
+    status = SearchStatus.NONE
+    while status != SearchStatus.DONE:
+        status = search.__next__()
+
+    assert len(set(b.vertices) - set(c.vertices)) == len(set(c.vertices) - set(b.vertices)) == 0
+
+    from brute_force import brute_force_vertices
+
+    vertices, vertices_inside_box = brute_force_vertices(b.hyperplanes, b.bounding_box)
+
+    for vertex in set(b.vertices) - vertices_inside_box:
+        assert any([cob.box_variable for cob in vertex.cobasis])

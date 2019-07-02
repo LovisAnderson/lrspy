@@ -25,9 +25,7 @@ class Lrs(ABC):
         self.m = m # Number of input hyperplanes
         self.d = d # dimension of embedding space + 1 (projective dimension)
         self.det = mpz(1) # determinant of the matrix, quasi the shared denominator
-        self.cobases = [] # list of cobases found
         self.vertices = [] # list of vertices found
-        self.position_vectors = [] # relative position to hyperplanes for each vertex
         self.i = self.d # Basis index in which we pivot
         self.j = 0 # Cobasis index in which we pivot
         self.boxed = True if bounding_box else False # Flag that indicates if we pivot inside a box (given through constraints)
@@ -259,7 +257,7 @@ class Lrs(ABC):
 
         coordinates = self.get_vertex()
         vertex = Vertex(coordinates, list(self.C[:-1]))
-        vertex.compute_position_vector(self.matrix, self.B, self.nr_hyperplanes)
+        vertex.compute_position_vector(self.matrix, self.B, self.nr_hyperplanes, self.d)
         if not check_lexicographic_order or vertex.cobasis_lexicographic_minimal():
             logger.debug('Append basis: {}'.format(self.C))
             logger.debug('Vertex: {}'.format(self.get_vertex()))

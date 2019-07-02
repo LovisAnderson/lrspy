@@ -4,13 +4,13 @@ class Vertex:
         self.cobasis = cobasis
         self.position_vector = None
 
-    def compute_position_vector(self, matrix, B, nr_hyperplanes):
+    def compute_position_vector(self, matrix, B, nr_hyperplanes, d):
         self.position_vector = [0] * nr_hyperplanes
-        for i, b in enumerate(B):
+        for i, b in enumerate(B[d:]):
             if b.slack_variable and not b.box_variable:
-                if matrix[B.order[i]][0] > 0:
+                if matrix[B.order[d+i]][0] > 0:
                     self.position_vector[b.hyperplane_index] = 1
-                elif matrix[B.order[i]][0] < 0:
+                elif matrix[B.order[d+i]][0] < 0:
                     self.position_vector[b.hyperplane_index] = -1
                 else:
                     self.position_vector[b.hyperplane_index] = 0
@@ -20,7 +20,6 @@ class Vertex:
         if len(self.cobasis) == len(self.coordinates):
             return True
         for i in range(len(self.cobasis) - 1):
-            print(i, self.cobasis[i+1], self.cobasis[i])
             if self.cobasis[i+1] < self.cobasis[i]:
                 return False
         return True
