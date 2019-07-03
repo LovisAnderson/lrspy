@@ -27,6 +27,7 @@ class Bland(lrs.Lrs):
             return i, j
         min = 1e+130
         min_sign = 'plus'
+        ratio_found = False
         for k, b in enumerate(self.B[self.d:]):
             m_k_j = self.matrix[self.B.order[k+self.d]][self.C.order[j]]
             if m_k_j == 0:
@@ -34,7 +35,12 @@ class Bland(lrs.Lrs):
             if self.boxed and not self.pivot_stays_in_box(k + self.d, j):
                 continue
             ratio = self.matrix[self.B.order[k+self.d]][0] / m_k_j
-            if ratio > 0 and min_sign == 'minus':
+            if ratio == 0:
+                if ratio_found:
+                    continue
+                i = k + self.d
+
+            elif ratio > 0 and min_sign == 'minus':
                 continue
             elif ratio < 0 and min_sign == 'plus':
                 min = abs(ratio)
