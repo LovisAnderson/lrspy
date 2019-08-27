@@ -32,9 +32,10 @@ class Lrs(ABC):
         self.bounding_box = bounding_box if bounding_box is not None else []
         self.drop_objective_value = True # Flag to indicate that we do not compute or update the target value of the objective (A[0}[d])
 
-    def set_objective(self):
-        for i in range(1, self.d):
-            self.matrix[0][i] = mpz(-self.det)
+    def set_objective(self, vector=None):
+        if vector is None:
+            vector = [0] + [mpz(-self.det) for i in range(1, self.d)]
+        self.matrix[0] = vector
 
     def augment_matrix_with_objective(self):
         objectiveRow = [mpz(1)]*(self.d)
@@ -161,6 +162,8 @@ class Lrs(ABC):
         Dicts have to be initialized before.
         Constraints are of the form a0 + a1x1 + ... + a_d-1 x_d-1 >= 0
         """
+        if len(constraints) == 0:
+            return
         self.box_constraints = constraints
         self.matrix += constraints
         self.startBox = self.m + self.d
@@ -409,6 +412,24 @@ class Lrs(ABC):
         for i, element in enumerate(list):
             if element >= number:
                 return i - 1
+
+    def variables_from_hyperplane_indices(self, hyperplane_indices):
+        variables = [v for v in self.B + self.C if v.hyperplane_index in hyperplane_indices]
+        return variables
+
+    def move_to_cobasis(self, desired_cobasis):
+        for c in desired_cobasis:
+            if c in self.C:
+                continue
+            i = self.B.index(c)
+            for j, out_c in enumerate(self.C[:-1]):
+                if out_c in desired_cobasis:
+                    continue
+                if self.matrix[self.B.order[i]][self.C.order[j]] != 0:
+                    self.i = i
+                    self.j = j
+                    self.pivot()
+                    break
 
 
 def hyperplane_string(hyperplane):
