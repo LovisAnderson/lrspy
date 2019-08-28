@@ -88,9 +88,12 @@ class Lrs(ABC):
         if self.boxed:
             self.move_into_box()
         self.make_feasible()
+        if self.boxed and not self.inside_box():
+            return False
         self.set_objective()
         self.resort_inequalities()
         self.append_solution()
+        return True
 
     def resort_inequalities(self):
         # Sorts variables corresponding to inequalities s.t. they basis is 0, ..., m
@@ -108,9 +111,13 @@ class Lrs(ABC):
             self.i, self.j = self.select_pivot()
 
     def make_feasible(self):
-        for i, row in enumerate(self.matrix[self.d:self.m+1]):
+        for i, b in enumerate(self.B):
+            if b.box_variable or not b.slack_variable:
+                continue
+            row = self.matrix[self.B.order[i]]
             if row[0] < 0:
-                self.matrix[i + self.d] = [-a for a in row]
+                self.matrix[self.B.order[i]] = [-a for a in row]
+                b.flipped = True
 
     def move_into_box(self):
 
@@ -123,15 +130,15 @@ class Lrs(ABC):
                     # Primal infeasible Variable
                     self.i = i
                     break
-            while (self.j < self.d and
+            while (self.j < self.d - 1 and
                    (self.matrix[self.B.order[self.i]][self.C.order[self.j]] == 0 or
                    (self.C[self.j].box_variable and self.matrix[self.B.order[self.i]][self.C.order[self.j]] < 0))):
                 self.j += 1
                 # To get primal feasible variable the sign of A[Row[i]][0] has to change
                 # This happens if A[Row[i]][Column[j]] > 0
 
-            if self.j == self.d:
-                raise ValueError
+            if self.j == self.d - 1:
+                raise ValueError  # box is empty
             self.pivot()
         logger.debug(PrettyInfo(self, 'After first basis with bounding box'))
 

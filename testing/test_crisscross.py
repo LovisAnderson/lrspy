@@ -2,7 +2,7 @@ from crisscross import CrissCross
 from lrs_datastructures import LrsDict, Variable
 from gmpy2 import mpz, mpfr
 from testing.fixtures import *
-from lrs import SearchStatus
+from lrs import SearchStatus, PrettyInfo
 
 
 def test_select_pivot(simplex):
@@ -34,7 +34,7 @@ def test_search(from_file):
         status = search.__next__()
     cobases = [[3, 4], [4, 5], [3, 5], [3, 6], [5, 6]]
     vertex_cobases = [vertex.cobasis for vertex in lrs.vertices]
-    assert all(cobasis in vertex_cobases for cobasis in cobases)
+    assert all(list(cobasis in vertex_cobases for cobasis in cobases))
 
 
 def test_negative_search(from_file):
