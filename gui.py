@@ -276,7 +276,7 @@ class WidgetGallery(QDialog):
         self.plot()
         if update_hyperplanes:
             self.write_hyperplanes()
-        self.matrixDisplay.setText(PrettyInfo(self.lrs))
+        self.matrixDisplay.setText(str(PrettyInfo(self.lrs)))
         self.write_status()
 
     def plot(self):
