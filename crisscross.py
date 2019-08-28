@@ -2,7 +2,6 @@ import lrs
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 class CrissCross(lrs.Lrs):
@@ -21,7 +20,7 @@ class CrissCross(lrs.Lrs):
                             continue
                         if self.matrix[self.B.order[basis_index]][self.C.order[cobasis_index]] > 0:
                             logger.debug('Primal infeasible! pivot i={}, j={}'.format(basis_index,
-                                                                               cobasis_index))
+                                                                                      cobasis_index))
                             return basis_index, cobasis_index
                     if not self.boxed:
                         raise ValueError

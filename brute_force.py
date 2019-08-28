@@ -1,4 +1,3 @@
-import ppl
 from ppl import Constraint_System, C_Polyhedron, Variable
 from vertex import Vertex
 import itertools

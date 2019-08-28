@@ -8,7 +8,7 @@ from plot import plot_arrangement, well_distinguishable_colors
 from bland import Bland
 from crisscross import CrissCross
 from reader import reader
-from lrs import SearchStatus, hyperplane_string
+from lrs import SearchStatus, hyperplane_string, PrettyInfo
 
 LabelFont = QtGui.QFont('SansSerif', 12)
 
@@ -99,7 +99,7 @@ class WidgetGallery(QDialog):
         min_x_label.setText('x min:')
 
         self.min_x_box = QLineEdit(self)
-        self.min_x_box.setText('-12')
+        self.min_x_box.setText('-1')
 
         # max x text field
         max_x_label = QLabel()
@@ -107,7 +107,7 @@ class WidgetGallery(QDialog):
         max_x_label.setText('x max:')
 
         self.max_x_box = QLineEdit(self)
-        self.max_x_box.setText('32')
+        self.max_x_box.setText('3')
 
         # min y text field
         min_y_label = QLabel()
@@ -115,7 +115,7 @@ class WidgetGallery(QDialog):
         min_y_label.setText('y min:')
 
         self.min_y_box = QLineEdit(self)
-        self.min_y_box.setText('-12')
+        self.min_y_box.setText('-1')
 
         # max y text field
         max_y_label = QLabel()
@@ -123,7 +123,7 @@ class WidgetGallery(QDialog):
         max_y_label.setText('y max:')
 
         self.max_y_box = QLineEdit(self)
-        self.max_y_box.setText('210')
+        self.max_y_box.setText('3')
 
         # button for updating bounds
         self.set_coordinates = QPushButton("Set Coordinates")
@@ -276,7 +276,7 @@ class WidgetGallery(QDialog):
         self.plot()
         if update_hyperplanes:
             self.write_hyperplanes()
-        self.matrixDisplay.setText(self.lrs.info_string())
+        self.matrixDisplay.setText(PrettyInfo(self.lrs))
         self.write_status()
 
     def plot(self):

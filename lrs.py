@@ -12,7 +12,7 @@ from vertex import Vertex
 random.seed(1)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 class Lrs(ABC):
@@ -22,15 +22,15 @@ class Lrs(ABC):
         self.nr_hyperplanes = m
         self.B = LrsDict() # Basis
         self.C = LrsDict() # Cobasis
-        self.m = m # Number of input hyperplanes
-        self.d = d # dimension of embedding space + 1 (projective dimension)
-        self.det = mpz(1) # determinant of the matrix, quasi the shared denominator
-        self.vertices = [] # list of vertices found
-        self.i = self.d # Basis index in which we pivot
-        self.j = 0 # Cobasis index in which we pivot
-        self.boxed = True if bounding_box else False # Flag that indicates if we pivot inside a box (given through constraints)
+        self.m = m  # Number of input hyperplanes
+        self.d = d  # dimension of embedding space + 1 (projective dimension)
+        self.det = mpz(1)  # determinant of the matrix, quasi the shared denominator
+        self.vertices = []  # list of vertices found
+        self.i = self.d  # Basis index in which we pivot
+        self.j = 0  # Cobasis index in which we pivot
+        self.boxed = True if bounding_box else False  # indicates if we pivot inside a box
         self.bounding_box = bounding_box if bounding_box is not None else []
-        self.drop_objective_value = True # Flag to indicate that we do not compute or update the target value of the objective (A[0}[d])
+        self.drop_objective_value = True
 
     def set_objective(self, vector=None):
         if vector is None:
@@ -81,12 +81,11 @@ class Lrs(ABC):
                    self.matrix[self.B.order[self.i]][self.C.order[self.j]] == 0):
                 self.i += 1
             self.pivot()
-        logging.debug(self.info_string('Variables moved into basis.'))
+        logging.debug(PrettyInfo(self, 'Variables moved into basis.'))
 
     def first_basis(self):
         self.variables_into_basis()
         if self.boxed:
-            # self.resort_inequalities() # todo necessary?
             self.move_into_box()
         self.make_feasible()
         self.set_objective()
@@ -134,7 +133,7 @@ class Lrs(ABC):
             if self.j == self.d:
                 raise ValueError
             self.pivot()
-        logger.debug(self.info_string('After first basis with bounding box'))
+        logger.debug(PrettyInfo(self, 'After first basis with bounding box'))
 
     def move_to_box_corner(self):
         not_box_cobasis_indices = [j for j, c in enumerate(self.C[:-1]) if not c.box_variable]
@@ -155,7 +154,6 @@ class Lrs(ABC):
             self.j = random.choice(range(self.d - 1))
             self.pivot()
             violated_indices = self.violated_box_variable_indices()
-
 
     def add_box_constraints(self, constraints):
         """
@@ -220,7 +218,7 @@ class Lrs(ABC):
         return True
 
     def search(self):
-        logger.info(self.info_string('Search start:'))
+        logger.info(PrettyInfo(self, 'Search start:'))
         self.i = self.d
         nextbasis = True
         backtrack = False
@@ -230,7 +228,7 @@ class Lrs(ABC):
             while self.j < self.d or self.B[self.m] != self.m:
                 if self.j == self.d - 1 and self.B[self.m] == self.m:
                     logging.info('All bases found!')
-                    logging.info('vertices', self.vertices)
+                    logging.info(f'vertices {self.vertices}')
                     nextbasis = False
                     yield SearchStatus.DONE
                     break
@@ -347,8 +345,8 @@ class Lrs(ABC):
         return divexact(nominator, self.det)
 
     def pivot(self):
-        logger.debug('pivot: outIndex: {}; inIndex: {}'.format(self.i, self.j))
-        logger.debug('outVariable: {}; inVariable: {}'.format(self.B[self.i], self.C[self.j]))
+        logger.debug(f'pivot: outIndex: {self.i}; inIndex: {self.j}')
+        logger.debug(f'outVariable: {self.B[self.i]}; inVariable: {self.C[self.j]}')
 
         row = self.B.order[self.i]
         column = self.C.order[self.j]
@@ -361,7 +359,7 @@ class Lrs(ABC):
         ]
         self.det = pivotElement if pivotElement > 0 else - pivotElement
         self.update()
-        logger.debug(self.info_string('After pivot:'))
+        logger.debug(PrettyInfo(self, 'After pivot:'))
 
     def increment(self):
         if self.i == self.m:
@@ -451,6 +449,32 @@ def format_int(integer, with_plus_sign=True):
             return format(integer)
         else:
             return '{:.3E}'.format(int(integer))
+
+
+class PrettyInfo:
+    # Wrapper class for output info. Used to avoid expensive creation of string if not logged because of lower level
+    def __init__(self, lrs, infoString=''):
+        self.lrs = lrs
+        self.infoString = infoString
+
+
+    def __str__(self):
+        str = self.infoString
+
+        str += 'Basis: {} \n'.format(self.lrs.B)
+        str += 'Cobasis: {}\n'.format(self.lrs.C)
+        str += 'det: {}\n'.format(format_int(self.lrs.det, with_plus_sign=False))
+        str += 'matrix:\n'
+        for i, b in enumerate(self.lrs.B):
+            row = []
+            for j, c in enumerate(self.lrs.C):
+                entry = format_int(self.lrs.matrix[self.lrs.B.order[i]][self.lrs.C.order[j]],
+                                   with_plus_sign=False)
+                row.append('A[{}][{}]={}, '.format(b, c, entry))
+            str += ' '.join(['{:<12}'] * self.lrs.d).format(*row)
+            str += '\n'
+        return str
+
 
 class SearchStatus(Enum):
     NONE = "no status"

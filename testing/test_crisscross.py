@@ -41,7 +41,6 @@ def test_negative_search(from_file):
     lrs = CrissCross(*from_file)
     lrs.augment_matrix_with_objective()
     lrs.matrix[2][0] += 10
-    lrs.info_string()
     lrs.init_dicts()
     lrs.first_basis()
     search = lrs.search()
