@@ -232,7 +232,7 @@ class Lrs(ABC):
         while nextbasis:
             self.j = 0
             self.i = self.d
-            while self.j < self.d or self.B[self.m] != self.m:
+            while True:
                 if self.j == self.d - 1 and self.B[self.m] == self.m:
                     logging.info('All bases found!')
                     logging.info(f'vertices {self.vertices}')
