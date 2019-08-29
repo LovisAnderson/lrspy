@@ -4,15 +4,13 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from enum import Enum
 from gmpy2 import mpz, divexact
-import logging
+import logging, logging_config
 import random
 from vertex import Vertex
 
 
 random.seed(1)
-
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class Lrs(ABC):
@@ -81,7 +79,7 @@ class Lrs(ABC):
                    self.matrix[self.B.order[self.i]][self.C.order[self.j]] == 0):
                 self.i += 1
             self.pivot()
-        logging.debug(PrettyInfo(self, 'Variables moved into basis.'))
+        logger.detailed_debug(PrettyInfo(self, 'Variables moved into basis.'))
 
     def first_basis(self):
         self.variables_into_basis()
@@ -229,22 +227,30 @@ class Lrs(ABC):
         self.i = self.d
         nextbasis = True
         backtrack = False
+        if self.B != list(range(len(self.B))):
+            non_standard_root = True
+            root = deepcopy(self.C)
+        else:
+            #
+            non_standard_root = False
         while nextbasis:
             self.j = 0
             self.i = self.d
             while True:
-                if self.j == self.d - 1 and self.B[self.m] == self.m:
-                    logging.info('All bases found!')
-                    logging.info(f'vertices {self.vertices}')
+                if self.j == self.d - 1 and (
+                        (not non_standard_root and self.B[self.m] == self.m) or (non_standard_root and self.C == root)):
+                    logger.info('All bases found!')
+                    for v in self.vertices:
+                        logger.info(f'vertex {str(v)}')
                     nextbasis = False
                     yield SearchStatus.DONE
                     break
                 if backtrack:
-                    logging.debug('Pivoting back!')
+                    logger.detailed_debug('Pivoting back!')
                     self.i, self.j = self.select_pivot()
                     self.pivot()
                     self.increment()
-                    logger.debug('i: {}, j: {}'.format(self.i, self.j))
+                    logger.detailed_debug(f'i: {self.i}, j: {self.j}')
                     backtrack = False
                     yield SearchStatus.BACKTRACKED
                 else:
@@ -301,18 +307,18 @@ class Lrs(ABC):
         self.j = self.C.index(B_out)
 
     def reverse(self):
-        logger.debug('In reverse: i: {}, j:{}'.format(self.i, self.j))
+        logger.detailed_debug('In reverse: i: {}, j:{}'.format(self.i, self.j))
         possibleReversePivot = self.necessary_condition_for_reverse()
         if not possibleReversePivot:
-            logger.debug('Not a possible reverse pivot!')
+            logger.detailed_debug('Not a possible reverse pivot!')
             return False
         self.pivot()
         i_forward, j_forward = self.select_pivot()
         if i_forward == self.i and j_forward == self.j:
-            logger.debug('valid reverse')
+            logger.debug(f'i: {self.i}| j: {self.j: } - Valid reverse')
             return True
         else:
-            logger.debug('Not valid reverse: pivoting back')
+            logger.detailed_debug('Not valid reverse: pivoting back')
             self.pivot()
             return False
 
@@ -352,8 +358,8 @@ class Lrs(ABC):
         return divexact(nominator, self.det)
 
     def pivot(self):
-        logger.debug(f'pivot: outIndex: {self.i}; inIndex: {self.j}')
-        logger.debug(f'outVariable: {self.B[self.i]}; inVariable: {self.C[self.j]}')
+        logger.detailed_debug(f'pivot: outIndex: {self.i}; inIndex: {self.j}')
+        logger.detailed_debug(f'outVariable: {self.B[self.i]}; inVariable: {self.C[self.j]}')
 
         row = self.B.order[self.i]
         column = self.C.order[self.j]
@@ -366,7 +372,7 @@ class Lrs(ABC):
         ]
         self.det = pivotElement if pivotElement > 0 else - pivotElement
         self.update()
-        logger.debug(PrettyInfo(self, 'After pivot:'))
+        logger.detailed_debug(PrettyInfo(self, 'After pivot:'))
 
     def increment(self):
         if self.i == self.m:
@@ -436,6 +442,20 @@ class Lrs(ABC):
                     self.pivot()
                     break
 
+    def move_to_hyperplanes(self, hyperplane_indices):
+        desired_cobasis = [b for b in self.B if b.hyperplane_index in hyperplane_indices]
+        desired_cobasis += [c for c in self.C if c.hyperplane_index in hyperplane_indices]
+        self.move_to_cobasis(desired_cobasis)
+
+    def get_degenericies(self):
+        degenerated_basis_vars = []
+        for i, b in enumerate(self.B):
+            if i < self.d:
+                continue
+            if self.matrix[self.B.order[i]][0] == 0:
+                degenerated_basis_vars.append(b)
+        return degenerated_basis_vars
+
 
 def hyperplane_string(hyperplane):
     hyperplane_str = format_int(hyperplane[0], with_plus_sign=False)
@@ -489,3 +509,4 @@ class SearchStatus(Enum):
     DONE = "all vertices found"
     INCREMENTED = "incremented"
     NEWBASIS = "new basis found"
+    NEWTREE = 'new tree'

@@ -129,8 +129,23 @@ def nine_overlap():
     matrix, m, d, _ = reader(str(p))
     return matrix, m, d
 
+
 @pytest.fixture
 def cs_polytopes_boxed():
     p = Path(__file__).parents[1].joinpath('data/cs_polytopes_boxed.ine')
+    matrix, m, d, box = reader(str(p))
+    return matrix, m, d, box
+
+
+@pytest.fixture
+def arrangement_degenerated_2_boxed():
+    p = Path(__file__).parents[1] / 'data/arrangement_degenerated_2_boxed.ine'
+    matrix, m, d, box = reader(str(p))
+    return matrix, m, d, box
+
+
+@pytest.fixture
+def arrangement_degenerated_2():
+    p = Path(__file__).parents[1] / 'data/degenerated_2.ine'
     matrix, m, d, box = reader(str(p))
     return matrix, m, d, box

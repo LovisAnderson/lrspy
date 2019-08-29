@@ -1,8 +1,7 @@
 from crisscross import CrissCross
-from lrs_datastructures import LrsDict, Variable
-from gmpy2 import mpz, mpfr
 from testing.fixtures import *
-from lrs import SearchStatus, PrettyInfo
+from lrs import SearchStatus
+from brute_force import brute_force_vertices
 
 
 def test_select_pivot(simplex):
@@ -28,7 +27,7 @@ def test_search(from_file):
     lrs.augment_matrix_with_objective()
     lrs.init_dicts()
     lrs.first_basis()
-    search = lrs.search()
+    search = lrs.forest_search()
     status = SearchStatus.NONE
     while status != SearchStatus.DONE:
         status = search.__next__()
@@ -43,7 +42,7 @@ def test_negative_search(from_file):
     lrs.matrix[2][0] += 10
     lrs.init_dicts()
     lrs.first_basis()
-    search = lrs.search()
+    search = lrs.forest_search()
     status = SearchStatus.NONE
     while status != SearchStatus.DONE:
         status = search.__next__()
@@ -59,7 +58,7 @@ def test_box_search(from_file):
     lrs.init_dicts()
     lrs.add_box_constraints([boxConstraint1, boxConstraint2, boxConstraint3, boxConstraint4])
     lrs.first_basis()
-    search = lrs.search()
+    search = lrs.forest_search()
     status = SearchStatus.NONE
     while status != SearchStatus.DONE:
         status = search.__next__()
@@ -71,7 +70,7 @@ def test_box_search_from_file(from_file_boxed):
     lrs.init_dicts()
     lrs.add_box_constraints(lrs.bounding_box)
     lrs.first_basis()
-    search = lrs.search()
+    search = lrs.forest_search()
     status = SearchStatus.NONE
     while status != SearchStatus.DONE:
         status = search.__next__()
@@ -82,7 +81,7 @@ def test_zero_vertex(zero_vertex):
     lrs.augment_matrix_with_objective()
     lrs.init_dicts()
     lrs.first_basis()
-    search = lrs.search()
+    search = lrs.forest_search()
     status = SearchStatus.NONE
     while status != SearchStatus.DONE:
         status = search.__next__()
@@ -96,7 +95,7 @@ def test_large_instance(nine_overlap):
     lrs.augment_matrix_with_objective()
     lrs.init_dicts()
     lrs.first_basis()
-    search = lrs.search()
+    search = lrs.forest_search()
     status = SearchStatus.NONE
     i = 0
     while status != SearchStatus.DONE and i <= 100:
@@ -110,16 +109,17 @@ def test_cs_boxed(cs_polytopes_boxed):
     lrs.init_dicts()
     lrs.add_box_constraints(lrs.bounding_box)
     lrs.first_basis()
-    search = lrs.search()
+    search = lrs.forest_search()
     status = SearchStatus.NONE
     while status != SearchStatus.DONE:
         status = search.__next__()
-    nr_vertices_in_box = 0
-    vertex_cobases = [vertex.cobasis for vertex in lrs.vertices]
-    for cobasis in vertex_cobases:
-        if not any(c.box_variable for c in cobasis):
-            nr_vertices_in_box += 1
-    assert nr_vertices_in_box == 70
+    nr_vertices_box_interior = len([v for v in lrs.vertices
+                                   if not any(c.box_variable for c in v.cobasis)])
+    assert nr_vertices_box_interior == 70
+    brute_vertices, brute_vertices_box_interior = brute_force_vertices(
+        lrs.hyperplanes, lrs.box_constraints
+    )
+    assert nr_vertices_box_interior == len(brute_vertices_box_interior)
 
 
 def test_hueh_boxed():
@@ -131,7 +131,7 @@ def test_hueh_boxed():
     lrs.init_dicts()
     lrs.add_box_constraints(lrs.bounding_box)
     lrs.first_basis()
-    search = lrs.search()
+    search = lrs.forest_search()
     from lrs import SearchStatus
     status = SearchStatus.NONE
     i = 0
@@ -139,3 +139,36 @@ def test_hueh_boxed():
         status = search.__next__()
         i += 1
     assert i == 1000
+
+
+def test_degenerated_2_boxed(arrangement_degenerated_2_boxed):
+    lrs = CrissCross(*arrangement_degenerated_2_boxed)
+    lrs.augment_matrix_with_objective()
+    lrs.init_dicts()
+    lrs.add_box_constraints(lrs.bounding_box)
+    lrs.first_basis()
+    search = lrs.forest_search()
+    status = SearchStatus.NONE
+    while status != SearchStatus.DONE:
+        status = search.__next__()
+    nr_vertices_box_interior = len([v for v in lrs.vertices
+                                    if not any(c.box_variable for c in v.cobasis)])
+    brute_vertices, brute_vertices_box_interior = brute_force_vertices(
+        lrs.hyperplanes, lrs.box_constraints
+    )
+    assert nr_vertices_box_interior == len(brute_vertices_box_interior)
+
+
+def test_degenerated_2(arrangement_degenerated_2):
+    lrs = CrissCross(*arrangement_degenerated_2)
+    lrs.augment_matrix_with_objective()
+    lrs.init_dicts()
+    lrs.first_basis()
+    search = lrs.forest_search()
+    status = SearchStatus.NONE
+    while status != SearchStatus.DONE:
+        status = search.__next__()
+    brute_vertices, _ = brute_force_vertices(
+        lrs.hyperplanes, []
+    )
+    assert len(lrs.vertices) == len(brute_vertices)

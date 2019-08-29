@@ -1,6 +1,8 @@
+import itertools
+
 import lrs
 
-import logging
+import logging, logging_config
 logger = logging.getLogger(__name__)
 
 
@@ -19,8 +21,9 @@ class CrissCross(lrs.Lrs):
                         if self.boxed and not self.pivot_stays_in_box(basis_index, cobasis_index):
                             continue
                         if self.matrix[self.B.order[basis_index]][self.C.order[cobasis_index]] > 0:
-                            logger.debug('Primal infeasible! pivot i={}, j={}'.format(basis_index,
-                                                                                      cobasis_index))
+                            logger.detailed_debug('Primal infeasible! pivot i={}, j={}'.format(
+                                basis_index, cobasis_index)
+                            )
                             return basis_index, cobasis_index
                     if not self.boxed:
                         raise ValueError
@@ -34,8 +37,9 @@ class CrissCross(lrs.Lrs):
                         if self.boxed and not self.pivot_stays_in_box(basis_index, cobasis_index):
                             continue
                         if self.matrix[self.B.order[basis_index]][self.C.order[cobasis_index]] < 0:
-                            logger.debug('Dual infeasible! pivot i={}, j={}'.format(basis_index,
-                                                                               cobasis_index))
+                            logger.detailed_debug('Dual infeasible! pivot i={}, j={}'.format(
+                                basis_index, cobasis_index)
+                            )
                             return basis_index, cobasis_index
                     if not self.boxed:
                         # todo Is it possible to have dual infeasible solutions with no valid pivot?
@@ -74,5 +78,32 @@ class CrissCross(lrs.Lrs):
                         range(self.d, self.max_index_of_smaller_number(self.C, self.C[self.j]) + 1)
                         )):
                 return True
-        logger.debug('Necessary Condition for reverse not fulfilled!')
+        logger.detailed_debug('Necessary Condition for reverse not fulfilled!')
         return False
+
+    def forest_search(self):
+        degenerated_basis_vars = self.get_degenericies()
+        search_status = lrs.SearchStatus.NONE
+        if len(degenerated_basis_vars) == 0:
+            search = self.search()
+            while search_status != lrs.SearchStatus.DONE:
+                search_status = search.__next__()
+                yield search_status
+        else:
+            logging.info('Degenerated start basis: Start forest search!')
+            degeneracy = self.C[:-1] + degenerated_basis_vars
+            degeneracy_hyperplanes = [v.hyperplane_index for v in degeneracy]
+            start_bases_by_hyperplanes = itertools.combinations(degeneracy_hyperplanes, self.d - 1)
+            self.append_solution(check_lexicographic_order=False)
+            for basis_hyperplanes in start_bases_by_hyperplanes:
+                logging.info(f'Start tree search with start hyperplanes {basis_hyperplanes}')
+                self.move_to_hyperplanes(basis_hyperplanes)
+                search_status = lrs.SearchStatus.NEWTREE
+                yield search_status
+                search = self.search()
+                while True:
+                    search_status = search.__next__()
+                    if search_status == lrs.SearchStatus.DONE:
+                        break
+                    yield search_status
+            yield lrs.SearchStatus.DONE

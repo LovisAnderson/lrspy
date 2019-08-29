@@ -219,7 +219,7 @@ class WidgetGallery(QDialog):
         self.lrs.i = int(self.pivot_box_i.text())
         self.lrs.j = int(self.pivot_box_j.text())
         self.lrs.pivot()
-        self.update()
+        self.update_status()
 
     def select_pivot(self):
         i, j = self.lrs.select_pivot()
@@ -272,8 +272,10 @@ class WidgetGallery(QDialog):
         self.pivot_box_i.setText(str(self.lrs.i))
         self.pivot_box_j.setText(str(self.lrs.j))
 
-    def update(self, update_hyperplanes=False):
+    def update_status(self, update_hyperplanes=False):
         self.plot()
+        if self.search_status == SearchStatus.NEWTREE:
+            update_hyperplanes = True
         if update_hyperplanes:
             self.write_hyperplanes()
         self.matrixDisplay.setText(str(PrettyInfo(self.lrs)))
@@ -308,9 +310,12 @@ class WidgetGallery(QDialog):
 
         if self.search_status != SearchStatus.DONE:
             self.search_status = self.search.__next__()
-            while self.search_status not in [SearchStatus.NEWBASIS, SearchStatus.BACKTRACKED, SearchStatus.DONE]:
+            while self.search_status not in [SearchStatus.NEWBASIS,
+                                             SearchStatus.BACKTRACKED,
+                                             SearchStatus.DONE,
+                                             SearchStatus.NEWTREE]:
                 self.search_status = self.search.__next__()
-            self.update()
+            self.update_status()
 
     def reset_controls(self):
         self.controls.addWidget(self.first_basis_button, 1, 0)
@@ -323,13 +328,13 @@ class WidgetGallery(QDialog):
         if self.search_status != SearchStatus.DONE:
             self.search_status = self.search.__next__()
             if self.search_status in [SearchStatus.NEWBASIS, SearchStatus.BACKTRACKED]:
-                self.update()
+                self.update_status()
             self.write_status()
 
     def first_basis(self):
         self.lrs.first_basis()
         self.first_basis_found = True
-        self.update(update_hyperplanes=True)
+        self.update_status(update_hyperplanes=True)
         self.first_basis_button.setParent(None)
         self.controls.addWidget(self.next_pivot_button, 0, 0)
         self.controls.addWidget(self.search_step_button, 1, 0)
@@ -337,8 +342,11 @@ class WidgetGallery(QDialog):
 
     def start_search(self):
         self.lrs.set_objective()
-        self.update(update_hyperplanes=True)
-        self.search = self.lrs.search()
+        self.update_status(update_hyperplanes=True)
+        if self.pivot_rule == 'CrissCross':
+            self.search = self.lrs.forest_search()
+        else:
+            self.search = self.lrs.search()
 
     def open_file(self):
         options = QFileDialog.Options()
@@ -352,18 +360,18 @@ class WidgetGallery(QDialog):
                 self.first_basis_found = False
             else:
                 self.create_coordinate_controls()
-            self.pivot_rule_button.deleteLater()
-            self.search_status = SearchStatus.NONE
-            if self.pivot_rule == 'CrissCross':
-                self.lrs = CrissCross(*reader(fileName))
-            elif self.pivot_rule == 'Bland':
-                self.lrs = Bland(*reader(fileName))
-            self.lrs.augment_matrix_with_objective()
-            self.lrs.init_dicts()
-            if len(self.lrs.bounding_box) > 0:
-                self.lrs.add_box_constraints(self.lrs.bounding_box)
-            self.first_basis_button.setDisabled(False)
-            self.update(update_hyperplanes=True)
+                self.first_basis_button.setDisabled(False)
+        self.pivot_rule_button.deleteLater()
+        self.search_status = SearchStatus.NONE
+        if self.pivot_rule == 'CrissCross':
+            self.lrs = CrissCross(*reader(fileName))
+        elif self.pivot_rule == 'Bland':
+            self.lrs = Bland(*reader(fileName))
+        self.lrs.augment_matrix_with_objective()
+        self.lrs.init_dicts()
+        if len(self.lrs.bounding_box) > 0:
+            self.lrs.add_box_constraints(self.lrs.bounding_box)
+        self.update_status(update_hyperplanes=True)
 
 import sys
 app = QApplication(sys.argv)
