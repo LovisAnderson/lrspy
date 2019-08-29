@@ -106,7 +106,7 @@ def from_file():
 
 @pytest.fixture
 def from_file_boxed():
-    p = Path(__file__).parents[1].joinpath('data/arrangement_boxed.ine')
+    p = Path(__file__).parents[1].joinpath('data/boxed.ine')
     matrix, m, d, box_matrix = reader(str(p))
     return matrix, m, d, box_matrix
 
@@ -139,7 +139,7 @@ def cs_polytopes_boxed():
 
 @pytest.fixture
 def arrangement_degenerated_2_boxed():
-    p = Path(__file__).parents[1] / 'data/arrangement_degenerated_2_boxed.ine'
+    p = Path(__file__).parents[1] / 'data/degenerated_2_boxed.ine'
     matrix, m, d, box = reader(str(p))
     return matrix, m, d, box
 
