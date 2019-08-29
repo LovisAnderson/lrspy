@@ -260,8 +260,7 @@ class Lrs(ABC):
                     if self.j == self.d - 1:
                         backtrack = True
                     else:
-                        if self.lex_min():
-                            self.append_solution()
+                        self.append_solution()
                         yield SearchStatus.NEWBASIS
 
                         logger.debug('start tree search from new root')
@@ -325,9 +324,6 @@ class Lrs(ABC):
     @abstractmethod
     def necessary_condition_for_reverse(self):
         pass
-
-    def lex_min(self):
-        return True
 
     def info_string(self, infoString=''):
         str = infoString
